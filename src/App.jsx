@@ -33,7 +33,8 @@ export default function App() {
   const [userPage, setUserPage] = useState(1);
   const [qaGatePage, setQaGatePage] = useState(1);
   const itemsPerPage = 5;
-  const galleryPerPage = 4; 
+  // CHANGED: Adjusted gallery per page capacity to 8 items instead of 4
+  const galleryPerPage = 8; 
 
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [showAddProductForm, setShowAddProductForm] = useState(false);
@@ -361,7 +362,8 @@ export default function App() {
     return matchesSearch && matchesStatus;
   });
 
-  const pendingQAOrders = masterTickets.filter(t => t.status === "Open");
+  // CHANGED: Removed the .filter(t => t.status === "Open") constraint so that newly closed/approved items still display in this session queue with their Excel option active.
+  const pendingQAOrders = masterTickets;
 
   // Filtering Logic for Master Data Registry using the unique Item ID
   let filteredRegistry = productsRegistry.filter(item => 
@@ -627,7 +629,7 @@ export default function App() {
 
               <div style={styles.immersiveGalleryRowGrid}>
                 {filteredRegistry.length === 0 ? (
-                  <div style={{ gridColumn: "span 2", padding: "60px", textAlign: "center", color: "#94a3b8" }}>No Master Component assets match your ID query criteria.</div>
+                  <div style={{ gridColumn: "span 4", padding: "60px", textAlign: "center", color: "#94a3b8" }}>No Master Component assets match your ID query criteria.</div>
                 ) : (
                   paginatedRegistry.map((item) => (
                     <div key={item.id} style={styles.galleryCardContainerFrame}>
@@ -728,9 +730,18 @@ export default function App() {
                 paginatedQAOrders.map((order) => (
                   <div key={order.orderNo} style={{ border: "1px solid #cbd5e1", borderRadius: "12px", padding: "28px", marginBottom: "32px", backgroundColor: "#ffffff", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.03)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: "2px solid #e2e8f0", paddingBottom: "14px" }}>
-                      {/* CHANGED Manifest Batch ID to Order Number */}
                       <span style={{ fontSize: "18px", fontWeight: "800", color: "#0a255c" }}>Order Number: {order.orderNo}</span>
-                      <span style={{ fontSize: "13px", color: "#0066cc", fontWeight: "600" }}>Originator Inspector: {order.initiator}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <span style={{ fontSize: "13px", color: "#0066cc", fontWeight: "600" }}>Originator Inspector: {order.initiator}</span>
+                        {/* Status Identifier layout pill */}
+                        <span style={{ 
+                          ...styles.badge, 
+                          backgroundColor: order.status === "Closed" ? "#e6f4ea" : "#fff4e5", 
+                          color: order.status === "Closed" ? "#137333" : "#b06000" 
+                        }}>
+                          {order.status === "Closed" ? "Approved" : "Pending Clearance"}
+                        </span>
+                      </div>
                     </div>
 
                     <div style={{ marginBottom: "24px" }}>
@@ -772,9 +783,17 @@ export default function App() {
                     </div>
 
                     <div style={{ display: "flex", gap: "14px", justifyContent: "flex-end", borderTop: "1px solid #e2e8f0", paddingTop: "20px" }}>
-                      {/* CHANGED buttons to REJECT and APPROVE */}
-                      <button onClick={() => handleQAAction(order.orderNo, false)} style={{ ...styles.submitButton, backgroundColor: "#c5221f" }}>REJECT</button>
-                      <button onClick={() => handleQAAction(order.orderNo, true)} style={{ ...styles.submitButton, backgroundColor: "#137333" }}>APPROVE</button>
+                      {/* CHANGED: If order is approved ("Closed"), show Download Excel button, else show REJECT and APPROVE actions */}
+                      {order.status === "Closed" ? (
+                        <button onClick={() => downloadExcelManifest(order)} style={{ ...styles.submitButton, backgroundColor: "#137333", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
+                          ⬇ Download Excel
+                        </button>
+                      ) : (
+                        <>
+                          <button onClick={() => handleQAAction(order.orderNo, false)} style={{ ...styles.submitButton, backgroundColor: "#c5221f" }}>REJECT</button>
+                          <button onClick={() => handleQAAction(order.orderNo, true)} style={{ ...styles.submitButton, backgroundColor: "#137333" }}>APPROVE</button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))
@@ -885,12 +904,14 @@ const styles = {
   modalContentBox: { width: "90%", maxWidth: "1200px", backgroundColor: "#ffffff", padding: "36px", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)" },
   closeModalCrossButton: { background: "none", border: "none", color: "#64748b", fontWeight: "700", cursor: "pointer", fontSize: "18px" },
   
-  immersiveGalleryRowGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px", width: "100%", padding: "10px 0" },
+  // CHANGED: Configured grid display to render 4 tracks side-by-side (fitting 8 objects gracefully with row wrapping)
+  immersiveGalleryRowGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "20px", width: "100%", padding: "10px 0" },
   galleryCardContainerFrame: { backgroundColor: "#ffffff", border: "1px solid #e6f0fa", borderRadius: "14px", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 4px 6px -1px rgba(10,37,92,0.02), 0 2px 4px -1px rgba(10,37,92,0.01)" },
-  galleryCardDisplayMediaFrame: { width: "100%", height: "250px", backgroundColor: "#f8fafc", borderBottom: "1px solid #e6f0fa", overflow: "hidden" },
-  galleryContentFrameMetaRow: { padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#ffffff" },
-  galleryItemNomenclatureTitleLabel: { fontSize: "16px", fontWeight: "700", color: "#0a255c", fontFamily: "monospace", letterSpacing: "0.5px" },
-  galleryEditIconTriggerButton: { padding: "7px 16px", border: "1px solid #cbd5e1", borderRadius: "8px", backgroundColor: "#ffffff", color: "#0066cc", fontSize: "12px", fontWeight: "700", cursor: "pointer" },
+  // CHANGED: Cut display area height parameter directly in half (125px instead of 250px)
+  galleryCardDisplayMediaFrame: { width: "100%", height: "125px", backgroundColor: "#f8fafc", borderBottom: "1px solid #e6f0fa", overflow: "hidden" },
+  galleryContentFrameMetaRow: { padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#ffffff" },
+  galleryItemNomenclatureTitleLabel: { fontSize: "14px", fontWeight: "700", color: "#0a255c", fontFamily: "monospace", letterSpacing: "0.5px" },
+  galleryEditIconTriggerButton: { padding: "5px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#ffffff", color: "#0066cc", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
 
   // TOAST LAYOUT BLOCKS
   toastContainer: { position: "fixed", top: "24px", left: "50%", transform: "translateX(-50%)", zIndex: 9999, pointerEvents: "none" },
