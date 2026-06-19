@@ -6,80 +6,166 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userRole, setUserRole] = useState("qc");
+  const [userRole, setUserRole] = useState("admin");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentDashboard, setCurrentDashboard] = useState("main");
-  const [systemTime, setSystemTime] = useState(new Date().toISOString().replace('T', ' ').substring(0, 19));
+  const [systemTime, setSystemTime] = useState("2026-06-19 02:38:00");
 
-  // Modal State for viewing items under a specific Work Order
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
 
-  // Pagination Configuration states (Strictly applied to prevent scrolling)
+  // Core Action Toast Notification State
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const triggerNotification = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
+
+  // Dedicated search entry state register for filtering Master Data components by ID
+  const [masterDataSearchQuery, setMasterDataSearchQuery] = useState("");
+
+  // Pagination Registers
   const [currentPage, setCurrentPage] = useState(1);
   const [registryPage, setRegistryPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
+  const [qaGatePage, setQaGatePage] = useState(1);
   const itemsPerPage = 5;
+  const galleryPerPage = 4; 
 
-  useEffect(() => {
-    const timeInterval = setInterval(() => {
-      setSystemTime(new Date().toISOString().replace('T', ' ').substring(0, 19));
-    }, 1000);
-    return () => clearInterval(timeInterval);
-  }, []);
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [showAddProductForm, setShowAddProductForm] = useState(false);
 
-  useEffect(() => {
-    setCurrentPage(1);
-    setRegistryPage(1);
-    setUserPage(1);
-  }, [searchQuery, statusFilter, currentDashboard]);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
 
+  const [newProductDesc, setNewProductDesc] = useState("");
+  const [newProductImg, setNewProductImg] = useState("");
+
+  // State register for triggering an edit window on any chosen master blueprint node
+  const [editingItemNode, setEditingItemNode] = useState(null);
+
+  // CORE REGISTRY BLUEPRINTS ARRAY
   const [productsRegistry, setProductsRegistry] = useState([
-    { orderNo: "ITM-902", desc: "High-Density PCB Module", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&auto=format&fit=crop", partType: "Assembled part" },
-    { orderNo: "ITM-441", desc: "Transformer Copper Coil", imageSrc: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400&auto=format&fit=crop", partType: "Loosed part" }
+    { id: 1, orderNo: "ITM-902", desc: "High-Density PCB Module", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400", partType: "Assembled part" },
+    { id: 2, orderNo: "ITM-441", desc: "Transformer Copper Coil", imageSrc: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400", partType: "Loosed part" },
+    { id: 3, orderNo: "ITM-108", desc: "Silicon Diode Rectifier Array", imageSrc: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400", partType: "Assembled part" },
+    { id: 4, orderNo: "ITM-502", desc: "Monolithic Ceramic Capacitor Cluster", imageSrc: "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400", partType: "Loosed part" },
+    { id: 5, orderNo: "ITM-229", desc: "Gallium Arsenide RF Amplifier Transistor", imageSrc: "https://images.unsplash.com/photo-1517055720413-77a27043181d?w=400", partType: "Assembled part" },
+    { id: 6, orderNo: "ITM-314", desc: "Fiber Optic Transceiver Core Block", imageSrc: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400", partType: "Assembled part" },
+    { id: 7, orderNo: "ITM-883", desc: "Ferrite Core Inductor Ring Bead", imageSrc: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400", partType: "Loosed part" },
+    { id: 8, orderNo: "ITM-711", desc: "Ultra-Low Noise Voltage Regulator", imageSrc: "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=400", partType: "Assembled part" },
+    { id: 9, orderNo: "ITM-605", desc: "Shielded Solid Core Signal Conductor", imageSrc: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400", partType: "Loosed part" },
+    { id: 10, orderNo: "ITM-114", desc: "Embedded ARM Cortex MCU Node", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400", partType: "Assembled part" }
   ]);
 
+  // MASTER WORK ORDERS MATRIX
   const [masterTickets, setMasterTickets] = useState([
     {
       orderNo: "ORD-7712",
       initiator: "inspector1@natdc.org",
       status: "Open",
       createTime: "2026-06-11 08:30:00",
-      qaRemarks: "",
+      closedTime: "—",
+      qaApprovedBy: "—",
       items: [
-        { uid: "i1", modelNo: "ITM-902", desc: "High-Density PCB Module", qty: 1, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=120", qcChecked: true, checklist: "Verified", remarks: "Passed continuity checks" },
-        { uid: "i2", modelNo: "ITM-441", desc: "Transformer Copper Coil", qty: 2, partType: "Loosed part", imageSrc: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=120", qcChecked: false, checklist: "Rejected", remarks: "Surface insulation scratch detected" }
+        { uid: "i1", modelNo: "ITM-902", desc: "High-Density PCB Module", qty: 4, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=120", status: "Verified", remarks: "Continuity pass.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Solder Joint Structural Integrity"] },
+        { uid: "i2", modelNo: "ITM-441", desc: "Transformer Copper Coil", qty: 2, partType: "Loosed part", imageSrc: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=120", status: "Rejected", remarks: "Surface scratch.", selectedCheckpoints: ["Dimensions & Tolerances Verification"] }
       ]
     },
     {
       orderNo: "ORD-8821",
       initiator: "inspector2@natdc.org",
       status: "Closed",
-      createTime: "2026-06-12 10:15:22",
-      qaRemarks: "All components structurally verified and approved.",
+      createTime: "2026-06-12 10:15:00",
+      closedTime: "2026-06-12 11:24:10",
+      qaApprovedBy: "bravo_auditor@natdc.org",
       items: [
-        { uid: "i3", modelNo: "ITM-902", desc: "High-Density PCB Module", qty: 5, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=120", qcChecked: true, checklist: "Verified", remarks: "Passed comprehensive stress tolerance diagnostics." }
+        { uid: "i3", modelNo: "ITM-108", desc: "Silicon Diode Rectifier Array", qty: 15, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=120", status: "Verified", remarks: "All criteria compliant.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Surface Insulation & Scratch Check", "Solder Joint Structural Integrity", "Thermal Signature Boundary Pass"] }
+      ]
+    },
+    {
+      orderNo: "ORD-1094",
+      initiator: "inspector1@natdc.org",
+      status: "Open",
+      createTime: "2026-06-14 14:22:15",
+      closedTime: "—",
+      qaApprovedBy: "—",
+      items: [
+        { uid: "i4", modelNo: "ITM-502", desc: "Monolithic Ceramic Capacitor Cluster", qty: 25, partType: "Loosed part", imageSrc: "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=120", status: "Verified", remarks: "Capacitance range optimal.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Thermal Signature Boundary Pass"] }
+      ]
+    },
+    {
+      orderNo: "ORD-4552",
+      initiator: "inspector3@natdc.org",
+      status: "Closed",
+      createTime: "2026-06-15 09:05:00",
+      closedTime: "2026-06-15 16:40:22",
+      qaApprovedBy: "alpha_auditor@natdc.org",
+      items: [
+        { uid: "i5", modelNo: "ITM-229", desc: "Gallium Arsenide RF Amplifier Transistor", qty: 8, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1517055720413-77a27043181d?w=120", status: "Verified", remarks: "RF isolation verified.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Surface Insulation & Scratch Check", "Solder Joint Structural Integrity"] }
+      ]
+    },
+    {
+      orderNo: "ORD-9901",
+      initiator: "inspector2@natdc.org",
+      status: "Open",
+      createTime: "2026-06-18 11:45:10",
+      closedTime: "—",
+      qaApprovedBy: "—",
+      items: [
+        { uid: "i6", modelNo: "ITM-711", desc: "Ultra-Low Noise Voltage Regulator", qty: 50, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=120", status: "Verified", remarks: "Awaiting final clearance parameters.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Thermal Signature Boundary Pass"] }
+      ]
+    },
+    {
+      orderNo: "ORD-2311",
+      initiator: "inspector4@natdc.org",
+      status: "Closed",
+      createTime: "2026-06-18 15:10:00",
+      closedTime: "2026-06-18 17:33:11",
+      qaApprovedBy: "bravo_auditor@natdc.org",
+      items: [
+        { uid: "i7", modelNo: "ITM-605", desc: "Shielded Solid Core Signal Conductor", qty: 100, partType: "Loosed part", imageSrc: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=120", status: "Verified", remarks: "Dielectric sweep trace constant.", selectedCheckpoints: ["Surface Insulation & Scratch Check"] }
       ]
     }
   ]);
 
+  // OPERATORS INFORMATION REGISTRY
   const [usersList, setUsersList] = useState([
-    { id: 1, name: "Alpha Inspector", email: "inspector1@natdc.org", designation: "Lead QC Officer", operation: "Grid Validation", isDisabled: false },
-    { id: 2, name: "Bravo Auditor", email: "inspector2@natdc.org", designation: "Senior QA Signatory", operation: "Clearance Release", isDisabled: false },
-    { id: 3, name: "System Administrator", email: "admin@natdc.org", designation: "IT Infrastructure Admin", operation: "Full Root Access", isDisabled: false }
+    { id: 1, name: "Alpha Inspector", email: "inspector1@natdc.org", isDisabled: false },
+    { id: 2, name: "Bravo Auditor", email: "inspector2@natdc.org", isDisabled: false },
+    { id: 3, name: "Charlie Line Lead", email: "inspector3@natdc.org", isDisabled: false },
+    { id: 4, name: "Delta Evaluator", email: "inspector4@natdc.org", isDisabled: true },
+    { id: 5, name: "Echo Calibration Tech", email: "inspector5@natdc.org", isDisabled: false },
+    { id: 6, name: "System Administrator", email: "admin@natdc.org", isDisabled: false }
   ]);
 
-  const [showAddUserForm, setShowAddUserForm] = useState(false);
-  const [newUserName, setNewUserName] = useState("");
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserDesig, setNewUserDesig] = useState("");
-  const [newUserOper, setNewUserOper] = useState("");
+  useEffect(() => {
+    setCurrentPage(1);
+    setRegistryPage(1);
+    setUserPage(1);
+    setQaGatePage(1);
+  }, [searchQuery, statusFilter, currentDashboard, masterDataSearchQuery]);
+
+  const tabs = [
+    { id: "main", label: "Data Dashboard", visible: userRole === "engineer" || userRole === "admin" || userRole === "qa" || userRole === "qc" }, 
+    { id: "my_tickets", label: "My Tickets", visible: userRole === "qc" },
+    { id: "master_data", label: "Master Data", visible: userRole === "engineer" || userRole === "admin" },
+    { id: "user_matrix", label: "User Management", visible: userRole === "admin" },
+    { id: "qa_gate", label: "QA Verification Gate", visible: userRole === "qa" }
+  ];
 
   const handleLogin = (e) => {
     e.preventDefault();
     if (email && password) {
       setIsLoggedIn(true);
-      setCurrentDashboard("main");
+      if (userRole === "qa") {
+        setCurrentDashboard("qa_gate");
+      } else {
+        setCurrentDashboard("main");
+      }
     }
   };
 
@@ -96,83 +182,211 @@ export default function App() {
       initiator: email,
       status: "Open",
       createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      qaRemarks: "",
+      closedTime: "—",
+      qaApprovedBy: "—",
       items: compiledItemsList
     };
     setMasterTickets([newOrderRecord, ...masterTickets]);
     setCurrentDashboard("main");
+    triggerNotification(`New Work Order ${orderId} has been successfully generated.`);
   };
 
-  const handleQAAction = (orderNo, approve, remarks) => {
+  const handleQAAction = (orderNo, approve) => {
     setMasterTickets(prev => prev.map(order => 
-      order.orderNo === orderNo ? { ...order, status: approve ? "Closed" : "Open", qaRemarks: remarks } : order
+      order.orderNo === orderNo ? { 
+        ...order, 
+        status: approve ? "Closed" : "Open", 
+        closedTime: approve ? new Date().toISOString().replace('T', ' ').substring(0, 19) : "—",
+        qaApprovedBy: approve ? email : "—"
+      } : order
     ));
-    alert(`Order ${orderNo} finalized.`);
-  };
-
-  const handleToggleUserStatus = (id) => {
-    setUsersList(prev => prev.map(u => u.id === id ? { ...u, isDisabled: !u.isDisabled } : u));
+    triggerNotification(`Batch manifest ${orderNo} has been ${approve ? "Approved & Released" : "Rejected & Requeued"}.`);
   };
 
   const handleAddNewUser = (e) => {
     e.preventDefault();
-    if (!newUserName || !newUserEmail) return;
-    const freshUser = {
-      id: Date.now(),
-      name: newUserName,
-      email: newUserEmail,
-      designation: newUserDesig || "General Inspector",
-      operation: newUserOper || "Standard Terminal Scan",
-      isDisabled: false
-    };
+    if (!newUserName.trim() || !newUserEmail.trim()) return;
+    const freshUser = { id: Date.now(), name: newUserName.trim(), email: newUserEmail.trim(), isDisabled: false };
     setUsersList([...usersList, freshUser]);
+    triggerNotification(`Operator profile for "${newUserName.trim()}" successfully registered.`);
     setNewUserName("");
     setNewUserEmail("");
-    setNewUserDesig("");
-    setNewUserOper("");
     setShowAddUserForm(false);
   };
 
-  const tabs = [
-    { id: "main", label: "Data Dashboard", visible: true }, 
-    { id: "my_tickets", label: "My Tickets", visible: userRole === "qc" },
-    { id: "master_data", label: "Master Data", visible: userRole === "admin" || userRole === "engineer" },
-    { id: "user_matrix", label: "User Management", visible: userRole === "admin" },
-    { id: "qa_gate", label: "QA Verification Gate", visible: userRole !== "admin" && userRole !== "engineer" && userRole !== "qc" && userRole !== "master_data" },
-  ];
+  const handleNativeImageFileUpload = (e) => {
+    const assetFile = e.target.files[0];
+    if (!assetFile) return;
+    const streamReader = new FileReader();
+    streamReader.onloadend = () => {
+      setNewProductImg(streamReader.result);
+      triggerNotification("Product preview graphic buffered successfully.");
+    };
+    streamReader.readAsDataURL(assetFile);
+  };
 
+  const handleEditModalImageUpload = (e) => {
+    const assetFile = e.target.files[0];
+    if (!assetFile) return;
+    const streamReader = new FileReader();
+    streamReader.onloadend = () => {
+      setEditingItemNode(prev => ({ ...prev, imageSrc: streamReader.result }));
+      triggerNotification("New asset node graphic replacement loaded into frame cache.");
+    };
+    streamReader.readAsDataURL(assetFile);
+  };
+
+  const handleAddNewProductNode = (e) => {
+    e.preventDefault();
+    if (!newProductDesc.trim()) return;
+    
+    const targetIdCode = newProductDesc.trim().toUpperCase();
+    const freshProduct = {
+      id: Date.now(),
+      orderNo: targetIdCode, 
+      desc: newProductDesc.trim(),
+      imageSrc: newProductImg || "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400",
+      partType: "Assembled part"
+    };
+    setProductsRegistry([freshProduct, ...productsRegistry]);
+    triggerNotification(`Master item node asset ${targetIdCode} successfully generated.`);
+    setNewProductDesc("");
+    setNewProductImg("");
+    setShowAddProductForm(false);
+  };
+
+  const handleBulkCSVUploadImport = (e) => {
+    const rawFileNode = e.target.files[0];
+    if (!rawFileNode) return;
+    const readerInstance = new FileReader();
+    readerInstance.onload = (evt) => {
+      const plainTextContent = evt.target.result;
+      const matrixLines = plainTextContent.split("\n");
+      const loadedNodes = [];
+
+      for (let i = 1; i < matrixLines.length; i++) {
+        const structuralRow = matrixLines[i].split(",");
+        if (structuralRow.length >= 2 && structuralRow[0].trim()) {
+          loadedNodes.push({
+            id: Date.now() + i,
+            orderNo: structuralRow[0].replace(/"/g, "").trim().toUpperCase(),
+            desc: structuralRow[1].replace(/"/g, "").trim(),
+            imageSrc: structuralRow[2] ? structuralRow[2].replace(/"/g, "").trim() : "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400",
+            partType: structuralRow[3] ? structuralRow[3].replace(/"/g, "").trim() : "Assembled part"
+          });
+        }
+      }
+      if (loadedNodes.length > 0) {
+        setProductsRegistry([...loadedNodes, ...productsRegistry]);
+        triggerNotification(`Manifest integration parsed: Imported ${loadedNodes.length} items from CSV.`);
+      }
+    };
+    readerInstance.readAsText(rawFileNode);
+  };
+
+  const handleCommitInlineEdit = (e) => {
+    e.preventDefault();
+    setProductsRegistry(prev => prev.map(p => p.id === editingItemNode.id ? editingItemNode : p));
+    triggerNotification(`Master parameters for product node ${editingItemNode.orderNo} updated successfully.`);
+    setEditingItemNode(null);
+  };
+
+  const handleToggleUserStatus = (id) => {
+    let targetedUserName = "";
+    let willDisable = false;
+    setUsersList(prev => prev.map(u => {
+      if (u.id === id) {
+        targetedUserName = u.name;
+        willDisable = !u.isDisabled;
+        return { ...u, isDisabled: !u.isDisabled };
+      }
+      return u;
+    }));
+    triggerNotification(`Operator account "${targetedUserName}" has been ${willDisable ? "Deactivated" : "Activated"}.`);
+  };
+
+  const downloadExcelManifest = (order) => {
+    const baselineChecklistOptions = [
+      "Dimensions & Tolerances Verification",
+      "Surface Insulation & Scratch Check",
+      "Solder Joint Structural Integrity",
+      "Thermal Signature Boundary Pass"
+    ];
+
+    let rowData = [
+      ["NEST GROUP COMPREHENSIVE WORKFLOW LOG MATRIX REPORT"],
+      ["Work Order Name", order.orderNo],
+      ["Initiated By", order.initiator],
+      ["Initiated Time", order.createTime],
+      ["Closed Time", order.closedTime],
+      ["Overall Status", order.status],
+      ["QA Authorized Clearing Signatory", order.qaApprovedBy],
+      [],
+      ["DETAILED MASTER PRODUCT FLOWS REGISTRY"],
+      ["Model ID Blueprint", "Item Nomenclature", "Allocated Quantity", "Part Assembly Group Classification", "QC Output Status Status", "Active Component Graphics Resource Link Destination Path", "Accepted Checklist Options Passed", "Denied Checkpoints Skipped", "Inspector Diagnostic Remarks Entries"]
+    ];
+
+    order.items.forEach(item => {
+      const accepted = (item.selectedCheckpoints || []).join(" | ") || "None";
+      const denied = baselineChecklistOptions.filter(x => !(item.selectedCheckpoints || []).includes(x)).join(" | ") || "None";
+      
+      rowData.push([
+        item.modelNo,
+        item.desc,
+        item.qty,
+        item.partType,
+        item.status || "Verified",
+        item.imageSrc || "—",
+        accepted,
+        denied,
+        item.remarks || "—"
+      ]);
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + rowData.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", encodedUri);
+    downloadAnchor.setAttribute("download", `WORKFLOW_REPORT_${order.orderNo}.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    document.body.removeChild(downloadAnchor);
+    triggerNotification(`Workflow report matrix downloaded for order ${order.orderNo}`);
+  };
+
+  // Derivative Calculations & Mappings
   let filteredTickets = masterTickets.filter(t => {
     const matchesSearch = t.orderNo.toLowerCase().includes(searchQuery.toLowerCase().trim());
     const matchesStatus = statusFilter === "All" || t.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  if (currentDashboard === "my_tickets") {
-    filteredTickets = filteredTickets.filter(t => t.initiator === email);
-  }
+  const pendingQAOrders = masterTickets.filter(t => t.status === "Open");
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const paginatedTickets = filteredTickets.slice(indexOfFirstItem, indexOfLastItem);
+  // Filtering Logic for Master Data Registry using the unique Item ID
+  let filteredRegistry = productsRegistry.filter(item => 
+    item.orderNo.toLowerCase().includes(masterDataSearchQuery.toLowerCase().trim())
+  );
+
+  const paginatedTickets = filteredTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalTicketPages = Math.ceil(filteredTickets.length / itemsPerPage);
 
-  const indexOfLastRegistry = registryPage * itemsPerPage;
-  const indexOfFirstRegistry = indexOfLastRegistry - itemsPerPage;
-  const paginatedRegistry = productsRegistry.slice(indexOfFirstRegistry, indexOfLastRegistry);
-  const totalRegistryPages = Math.ceil(productsRegistry.length / itemsPerPage);
+  const paginatedRegistry = filteredRegistry.slice((registryPage - 1) * galleryPerPage, registryPage * galleryPerPage);
+  const totalRegistryPages = Math.ceil(filteredRegistry.length / galleryPerPage);
 
-  const indexOfLastUser = userPage * itemsPerPage;
-  const indexOfFirstUser = indexOfLastUser - itemsPerPage;
-  const paginatedUsers = usersList.slice(indexOfFirstUser, indexOfLastUser);
+  const paginatedUsers = usersList.slice((userPage - 1) * itemsPerPage, userPage * itemsPerPage);
   const totalUserPages = Math.ceil(usersList.length / itemsPerPage);
 
+  const paginatedQAOrders = pendingQAOrders.slice((qaGatePage - 1) * itemsPerPage, qaGatePage * itemsPerPage);
+  const totalQAPages = Math.ceil(pendingQAOrders.length / itemsPerPage);
+
   const NeSTLogoEmblem = () => (
-    <svg width="42" height="28" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+    <svg width="46" height="30" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
       <g transform="translate(5, 5)">
         <ellipse cx="55" cy="35" rx="52" ry="32" fill="#e2e8f0" transform="translate(2, 3)" />
         <ellipse cx="55" cy="35" rx="52" ry="32" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
-        <path d="M55 3 C25 3, 5 15, 5 35 C5 52, 20 63, 40 65 C48 55, 54 42, 57 33 L38 45 L55 3 Z" fill="#1a3a8f" />
-        <path d="M55 67 C85 67, 105 55, 105 35 C105 18, 90 7, 70 5 C62 15, 56 28, 53 37 L72 25 L55 67 Z" fill="#e11d48" />
+        <path d="M55 3 C25 3, 5 15, 5 35 C5 52, 20 63, 40 65 C48 55, 54 42, 57 33 L38 45 L55 3 Z" fill="#0a255c" />
+        <path d="M55 67 C85 67, 105 55, 105 35 C105 18, 90 7, 70 5 C62 15, 56 28, 53 37 L72 25 L55 67 Z" fill="#d91414" />
         <text x="55" y="42" fontFamily="'Arial Black', Impact, sans-serif" fontSize="16" fontWeight="900" fill="#0f172a" textAnchor="middle" letterSpacing="-0.5">NeST</text>
       </g>
     </svg>
@@ -182,32 +396,32 @@ export default function App() {
     return (
       <div style={styles.loginPage}>
         <div style={styles.loginCard}>
-          <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div style={{ textAlign: "center", marginBottom: "36px" }}>
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
               <NeSTLogoEmblem />
-              <h2 style={{ margin: 0, color: "#1a3a8f", fontSize: "28px", fontWeight: "800", letterSpacing: "-0.5px" }}>NEST GROUP</h2>
+              <h2 style={{ margin: 0, color: "#0a255c", fontSize: "28px", fontWeight: "800", letterSpacing: "-0.5px" }}>SFO TECHNOLOGIES</h2>
             </div>
-            <p style={{ margin: "0", color: "#64748b", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "700" }}>Secure Quality Assurance Terminal</p>
+            <p style={{ margin: "0", color: "#0066cc", fontSize: "11px", transform: "translateY(-4px)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "700" }}>Secure Quality Assurance Terminal</p>
           </div>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div>
               <label style={styles.fieldLabel}>Authentication Clearance Role</label>
               <select value={userRole} onChange={(e) => setUserRole(e.target.value)} style={styles.loginSelect}>
+                <option value="admin">System Administrator</option>
                 <option value="qc">Quality Control (QC) Inspector</option>
                 <option value="engineer">Engineer Terminal</option>
                 <option value="qa">Quality Assurance (QA) Authority</option>
-                <option value="admin">System Administrator</option>
               </select>
             </div>
             <div>
               <label style={styles.fieldLabel}>Corporate Email Address</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="operator@natdc.org" style={styles.loginInput} required />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="operator@sfotechnologies.net" style={styles.loginInput} required />
             </div>
             <div>
               <label style={styles.fieldLabel}>Password</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={styles.loginInput} required />
             </div>
-            <button type="submit" style={styles.submitButton}>Verify Terminal Identity</button>
+            <button type="submit" style={{...styles.submitButton, width: "100%", padding: "14px"}}>Verify Terminal Identity</button>
           </form>
         </div>
       </div>
@@ -216,24 +430,33 @@ export default function App() {
 
   return (
     <div style={styles.appWrapper}>
+      {/* BUSINESS TOAST OVERLAY */}
+      {toastMessage && (
+        <div style={styles.toastContainer}>
+          <div style={styles.toastCard}>
+            <span style={{ fontWeight: "600", letterSpacing: "-0.1px" }}>{toastMessage}</span>
+          </div>
+        </div>
+      )}
+
       <header style={styles.topBar}>
         <div style={{ display: "flex", alignItems: "center", gap: "40px", height: "100%" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <NeSTLogoEmblem />
-            <span style={{ fontSize: "20px", fontWeight: "800", color: "#1a3a8f", letterSpacing: "-0.5px" }}>NeST</span>
-            <span style={{ color: "#cbd5e1", fontSize: "16px" }}>|</span>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "1px" }}>Grid Management</span>
+            <span style={{ fontSize: "20px", fontWeight: "800", color: "#0a255c", letterSpacing: "-0.5px" }}>SFO Technologies</span>
+            <span style={{ color: "#e2e8f0", fontSize: "16px" }}>|</span>
+            <span style={{ fontSize: "10px", fontWeight: "700", color: "#0066cc", textTransform: "uppercase", letterSpacing: "1.2px", backgroundColor: "#e6f0fa", padding: "5px 10px", borderRadius: "6px" }}>A NeST Group Company</span>
           </div>
           
-          <nav style={{ display: "flex", height: "100%", gap: "4px" }}>
+          <nav style={{ display: "flex", height: "100%", gap: "6px" }}>
             {tabs.filter(t => t.visible).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setCurrentDashboard(tab.id)}
                 style={{
                   ...styles.tabItem,
-                  borderBottom: currentDashboard === tab.id ? "3px solid #1a3a8f" : "3px solid transparent",
-                  color: currentDashboard === tab.id ? "#1a3a8f" : "#64748b",
+                  borderBottom: currentDashboard === tab.id ? "3px solid #0066cc" : "3px solid transparent",
+                  color: currentDashboard === tab.id ? "#0a255c" : "#64748b",
                   fontWeight: currentDashboard === tab.id ? "700" : "500",
                 }}
               >
@@ -245,25 +468,21 @@ export default function App() {
 
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           <div style={styles.userProfileBadge}>
-            <div style={{ color: "#0f172a", fontWeight: "700", fontSize: "13px" }}>{email}</div>
-            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700" }}>CLEARANCE: {userRole.toUpperCase()}</div>
-            <div style={{ color: "#1a3a8f", fontSize: "11px", fontWeight: "600", marginTop: "1px" }}>{systemTime}</div>
+            <div style={{ color: "#0a255c", fontWeight: "700", fontSize: "13px" }}>{email}</div>
+            <div style={{ color: "#0066cc", fontSize: "10px", fontWeight: "700", letterSpacing: "0.5px", marginTop: "2px" }}>CLEARANCE: {userRole.toUpperCase()}</div>
+            <div style={{ color: "#94a3b8", fontSize: "11px", fontWeight: "500", marginTop: "2px", fontFamily: "monospace" }}>{systemTime}</div>
           </div>
           <button onClick={handleLogout} style={styles.logoutButton}>Logout</button>
         </div>
       </header>
 
       <main style={styles.contentArea}>
-        {(currentDashboard === "main" || currentDashboard === "my_tickets") && (
+        {/* VIEW 1: DATA DASHBOARD */}
+        {currentDashboard === "main" && (
           <div style={styles.workspaceContainer}>
-            <MetricsRow 
-              masterTickets={currentDashboard === "my_tickets" ? masterTickets.filter(t => t.initiator === email) : masterTickets} 
-              statusFilter={statusFilter} 
-              setStatusFilter={setStatusFilter} 
-              styles={styles} 
-            />
+            <MetricsRow masterTickets={masterTickets} statusFilter={statusFilter} setStatusFilter={setStatusFilter} styles={styles} />
             
-            <div style={{ display: "flex", justifyContent: "space-between", margin: "24px 0 16px 0", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", margin: "28px 0 16px 0", alignItems: "center" }}>
               <input type="text" placeholder="Search by work order id..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={styles.textInput} />
               {(userRole === "qc" || userRole === "admin") && (
                 <button onClick={() => setCurrentDashboard("create_ticket")} style={styles.submitButton}>+ Generate New Work Order</button>
@@ -274,50 +493,44 @@ export default function App() {
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.thRow}>
-                    <th style={styles.th}>Work Order ID</th>
-                    <th style={styles.th}>Initiator</th>
-                    <th style={styles.th}>Timestamp</th>
-                    <th style={styles.th}>Items Count</th>
-                    <th style={styles.th}>QC Approval Status</th>
-                    <th style={styles.th}>QA Approval Status</th>
-                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Order Name</th>
+                    <th style={styles.th}>Initiated By</th>
+                    <th style={styles.th}>Initiated Time</th>
+                    <th style={styles.th}>Closed Time</th>
+                    <th style={styles.th}>Status (Overall Status)</th>
                     <th style={styles.th}>View Breakdown</th>
+                    <th style={styles.th}>Comprehensive Export</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedTickets.length === 0 ? (
-                    <tr><td colSpan="8" style={{ ...styles.td, textAlign: "center", color: "#94a3b8" }}>No work records matched criteria.</td></tr>
+                    <tr><td colSpan="7" style={{ ...styles.td, textAlign: "center", color: "#94a3b8", padding: "32px" }}>No records matched search conditions.</td></tr>
                   ) : (
-                    paginatedTickets.map((ticket, idx) => {
-                      const totalItemsCount = ticket.items ? ticket.items.reduce((sum, i) => sum + i.qty, 0) : 0;
-                      const hasRejectedQC = ticket.items ? ticket.items.some(i => !i.qcChecked) : false;
-                      return (
-                        <tr key={idx} style={styles.tr}>
-                          <td style={{ ...styles.td, fontWeight: "700", color: "#1a3a8f" }}>{ticket.orderNo}</td>
-                          <td style={styles.td}>{ticket.initiator}</td>
-                          <td style={{ ...styles.td, fontFamily: "monospace" }}>{ticket.createTime}</td>
-                          <td style={styles.td}>{totalItemsCount} units</td>
-                          <td style={styles.td}>
-                            <span style={{ ...styles.badge, backgroundColor: hasRejectedQC ? "#fff5f5" : "#f0fdf4", color: hasRejectedQC ? "#e11d48" : "#16a34a" }}>
-                              {hasRejectedQC ? "QC Discrepancy" : "QC Approved"}
-                            </span>
-                          </td>
-                          <td style={styles.td}>
-                            <span style={{ ...styles.badge, backgroundColor: ticket.status === "Closed" ? "#f0fdf4" : "#fffbeb", color: ticket.status === "Closed" ? "#16a34a" : "#d97706" }}>
-                              {ticket.status === "Closed" ? "QA Released" : "QA Pending"}
-                            </span>
-                          </td>
-                          <td style={styles.td}>
-                            <span style={{ ...styles.badge, backgroundColor: ticket.status === "Closed" ? "#f1f5f9" : "#eff6ff", color: ticket.status === "Closed" ? "#475569" : "#1a3a8f" }}>
-                              {ticket.status}
-                            </span>
-                          </td>
-                          <td style={styles.td}>
-                            <button onClick={() => setSelectedOrderDetails(ticket)} style={styles.actionInlineBtn}>View</button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                    paginatedTickets.map((ticket, idx) => (
+                      <tr key={idx} style={styles.tr}>
+                        <td style={{ ...styles.td, fontWeight: "700", color: "#0a255c" }}>{ticket.orderNo}</td>
+                        <td style={styles.td}>{ticket.initiator}</td>
+                        <td style={{ ...styles.td, fontFamily: "monospace", color: "#475569" }}>{ticket.createTime}</td>
+                        <td style={{ ...styles.td, fontFamily: "monospace", color: "#475569" }}>{ticket.closedTime}</td>
+                        <td style={styles.td}>
+                          <span style={{ 
+                            ...styles.badge, 
+                            backgroundColor: ticket.status === "Closed" ? "#e6f4ea" : "#fff4e5", 
+                            color: ticket.status === "Closed" ? "#137333" : "#b06000" 
+                          }}>
+                            {ticket.status}
+                          </span>
+                        </td>
+                        <td style={styles.td}>
+                          <button onClick={() => setSelectedOrderDetails(ticket)} style={styles.actionInlineBtn}>View Breakdown</button>
+                        </td>
+                        <td style={styles.td}>
+                          <button onClick={() => downloadExcelManifest(ticket)} style={{ ...styles.actionInlineBtn, backgroundColor: "#137333", color: "#ffffff", border: "none" }}>
+                            ⬇ Download Excel
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
@@ -333,62 +546,107 @@ export default function App() {
           </div>
         )}
 
-        {currentDashboard === "create_ticket" && (
-          <div style={styles.workspaceContainer}>
-            <CreateTicketDashboard 
-              productsRegistry={productsRegistry} 
-              onSaveTicket={handleSaveTicket} 
-              onCancel={() => setCurrentDashboard("main")} 
-              styles={styles} 
-            />
-          </div>
-        )}
-
-        {currentDashboard === "master_data" && (
+        {/* VIEW 2: MY TICKETS */}
+        {currentDashboard === "my_tickets" && userRole === "qc" && (
           <div style={styles.workspaceContainer}>
             <div style={styles.panel}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px" }}>
-                <div>
-                  <h3 style={{ margin: 0, color: "#0f172a", fontSize: "16px", fontWeight: "700" }}>System Component Master Registers</h3>
-                  <p style={{ margin: 0, color: "#64748b", fontSize: "12px" }}>Primary inventory structural blueprints control deck</p>
-                </div>
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <button onClick={() => alert("Simulate CSV file scanner routine.")} style={{ ...styles.submitButton, backgroundColor: "#475569" }}>Add Item as File (.csv / .txt)</button>
-                  <button onClick={() => alert("Launch configuration matrix workflow.")} style={styles.submitButton}>+ Add Item as Single</button>
-                </div>
-              </div>
-
+              <h3 style={{ margin: "0 0 20px 0", color: "#0a255c", fontWeight: "700" }}>Inspector Workspace Logs</h3>
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.thRow}>
-                    <th style={styles.th}>Model Blueprint ID</th>
-                    <th style={styles.th}>Nomenclature Specification</th>
-                    <th style={styles.th}>Classification Group</th>
-                    <th style={styles.th}>High-Visibility Asset Reference</th>
-                    <th style={styles.th}>Operational Control</th>
+                    <th style={styles.th}>Work Order ID</th>
+                    <th style={styles.th}>Time Stamped</th>
+                    <th style={styles.th}>Verification Status</th>
+                    <th style={styles.th}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRegistry.map((item, idx) => (
+                  {masterTickets.filter(t => t.initiator === email).map((ticket, idx) => (
                     <tr key={idx} style={styles.tr}>
-                      <td style={{ ...styles.td, fontWeight: "700" }}>{item.orderNo}</td>
-                      <td style={styles.td}>{item.desc}</td>
-                      <td style={styles.td}><span style={{ ...styles.badge, backgroundColor: "#f1f5f9", color: "#334155" }}>{item.partType}</span></td>
-                      <td style={styles.td}>
-                        <div style={styles.largeImageFrame}>
-                          <img src={item.imageSrc} alt={item.desc} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        </div>
-                      </td>
-                      <td style={styles.td}>
-                        <button onClick={() => alert(`Target configuration node ${item.orderNo}`)} style={styles.actionInlineBtn}>Edit</button>
-                      </td>
+                      <td style={{ ...styles.td, fontWeight: "700", color: "#0a255c" }}>{ticket.orderNo}</td>
+                      <td style={styles.td}>{ticket.createTime}</td>
+                      <td style={styles.td}><span style={{ ...styles.badge, backgroundColor: "#fff4e5", color: "#b06000" }}>{ticket.status}</span></td>
+                      <td style={styles.td}><button onClick={() => setSelectedOrderDetails(ticket)} style={styles.actionInlineBtn}>Review Items</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 3: GENERATE WORK ORDER */}
+        {currentDashboard === "create_ticket" && (userRole === "qc" || userRole === "admin") && (
+          <div style={styles.workspaceContainer}>
+            <CreateTicketDashboard productsRegistry={productsRegistry} onSaveTicket={handleSaveTicket} onCancel={() => setCurrentDashboard("main")} styles={styles} />
+          </div>
+        )}
+
+        {/* VIEW 4: MASTER DATA IMMERSIVE GALLERY GRID */}
+        {currentDashboard === "master_data" && (userRole === "engineer" || userRole === "admin") && (
+          <div style={styles.workspaceContainer}>
+            <div style={styles.panel}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", borderBottom: "1px solid #e6f0fa", paddingBottom: "18px" }}>
+                <div>
+                  <h3 style={{ margin: 0, color: "#0a255c", fontSize: "18px", fontWeight: "700" }}>System Component Master Registers</h3>
+                </div>
+                <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
+                  <input 
+                    type="text" 
+                    placeholder="Search Item ID (e.g. ITM-902)..." 
+                    value={masterDataSearchQuery} 
+                    onChange={(e) => setMasterDataSearchQuery(e.target.value)} 
+                    style={styles.textInput} 
+                  />
+                  <label style={{ ...styles.submitButton, backgroundColor: "#475569", display: "inline-block", cursor: "pointer", lineHeight: "20px" }}>
+                    Add as File (.csv)
+                    <input type="file" accept=".csv" onChange={handleBulkCSVUploadImport} style={{ display: "none" }} />
+                  </label>
+                  <button onClick={() => { setShowAddProductForm(!showAddProductForm); setNewProductImg(""); }} style={styles.submitButton}>
+                    {showAddProductForm ? "Hide Form Layer" : "+ Upload as Item Image"}
+                  </button>
+                </div>
+              </div>
+
+              {showAddProductForm && (
+                <form onSubmit={handleAddNewProductNode} style={styles.embeddedFormBlock}>
+                  <h4 style={{ margin: "0 0 14px 0", fontSize: "14px", color: "#0a255c", fontWeight: "700" }}>Manual Item Overlay Asset Pipeline</h4>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                    <div>
+                      <label style={styles.fieldLabel}>Choose Image</label>
+                      <input type="file" accept="image/*" onChange={handleNativeImageFileUpload} style={styles.formInlineInput} required />
+                    </div>
+                    <div>
+                      <label style={styles.fieldLabel}>Image Name (Item ID)</label>
+                      <input type="text" placeholder="e.g. ITM-100" value={newProductDesc} onChange={(e) => setNewProductDesc(e.target.value)} style={styles.formInlineInput} required />
+                    </div>
+                  </div>
+                  <button type="submit" style={{ ...styles.submitButton, backgroundColor: "#137333" }}>Commit Provision Node</button>
+                </form>
+              )}
+
+              <div style={styles.immersiveGalleryRowGrid}>
+                {filteredRegistry.length === 0 ? (
+                  <div style={{ gridColumn: "span 2", padding: "60px", textAlign: "center", color: "#94a3b8" }}>No Master Component assets match your ID query criteria.</div>
+                ) : (
+                  paginatedRegistry.map((item) => (
+                    <div key={item.id} style={styles.galleryCardContainerFrame}>
+                      <div style={styles.galleryCardDisplayMediaFrame}>
+                        <img src={item.imageSrc} alt={item.orderNo} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                      <div style={styles.galleryContentFrameMetaRow}>
+                        <div style={styles.galleryItemNomenclatureTitleLabel}>{item.orderNo}</div>
+                        <button onClick={() => setEditingItemNode(item)} style={styles.galleryEditIconTriggerButton}>
+                          ✏️ EDIT
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
               <div style={styles.paginationRow}>
-                <span style={{ fontSize: "13px", color: "#64748b" }}>Showing page <b>{registryPage}</b> of {totalRegistryPages || 1}</span>
+                <span style={{ fontSize: "13px", color: "#64748b" }}>Displaying Gallery Sheet <b>{registryPage}</b> of {totalRegistryPages || 1}</span>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button disabled={registryPage === 1} onClick={() => setRegistryPage(p => p - 1)} style={styles.paginationButton}>Previous</button>
                   <button disabled={registryPage >= totalRegistryPages} onClick={() => setRegistryPage(p => p + 1)} style={styles.paginationButton}>Next</button>
@@ -398,41 +656,30 @@ export default function App() {
           </div>
         )}
 
-        {currentDashboard === "user_matrix" && (
+        {/* VIEW 5: USER MANAGEMENT */}
+        {currentDashboard === "user_matrix" && userRole === "admin" && (
           <div style={styles.workspaceContainer}>
             <div style={styles.panel}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <div>
-                  <h3 style={{ margin: "0", color: "#0f172a", fontSize: "16px", fontWeight: "700" }}>Corporate Operator Permissions Log</h3>
-                  <p style={{ margin: 0, color: "#64748b", fontSize: "12px" }}>Control active lines and monitor identity status keys</p>
-                </div>
+                <h3 style={{ margin: "0", color: "#0a255c", fontSize: "18px", fontWeight: "700" }}>Corporate Operator Permissions Log</h3>
                 <button onClick={() => setShowAddUserForm(!showAddUserForm)} style={styles.submitButton}>
-                  {showAddUserForm ? "Hide Overlay Form" : "+ Add User"}
+                  {showAddUserForm ? "Hide Overlay Frame" : "+ Add User"}
                 </button>
               </div>
 
               {showAddUserForm && (
                 <form onSubmit={handleAddNewUser} style={styles.embeddedFormBlock}>
-                  <h4 style={{ margin: "0 0 12px 0", fontSize: "13px", color: "#1a3a8f", fontWeight: "700" }}>Provision Personnel Node Matrix</h4>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "16px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                     <div>
                       <label style={styles.fieldLabel}>Operator Name</label>
-                      <input type="text" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Full Name" style={styles.formInlineInput} required />
+                      <input type="text" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Full Identity Name" style={styles.formInlineInput} required />
                     </div>
                     <div>
-                      <label style={styles.fieldLabel}>Email</label>
-                      <input type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="email@natdc.org" style={styles.formInlineInput} required />
-                    </div>
-                    <div>
-                      <label style={styles.fieldLabel}>Designation</label>
-                      <input type="text" value={newUserDesig} onChange={(e) => setNewUserDesig(e.target.value)} placeholder="Role Level" style={styles.formInlineInput} />
-                    </div>
-                    <div>
-                      <label style={styles.fieldLabel}>Operation</label>
-                      <input type="text" value={newUserOper} onChange={(e) => setNewUserOper(e.target.value)} placeholder="Functional Scope" style={styles.formInlineInput} />
+                      <label style={styles.fieldLabel}>Mail ID</label>
+                      <input type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="corporate@sfotechnologies.net" style={styles.formInlineInput} required />
                     </div>
                   </div>
-                  <button type="submit" style={{ ...styles.submitButton, backgroundColor: "#16a34a" }}>Commit Node Access</button>
+                  <button type="submit" style={{ ...styles.submitButton, backgroundColor: "#137333" }}>Commit Node Access Profile</button>
                 </form>
               )}
 
@@ -440,30 +687,18 @@ export default function App() {
                 <thead>
                   <tr style={styles.thRow}>
                     <th style={styles.th}>Operator Name</th>
-                    <th style={styles.th}>Email</th>
-                    <th style={styles.th}>Designation</th>
-                    <th style={styles.th}>Operation</th>
-                    <th style={styles.th}>Account Status Actions</th>
+                    <th style={styles.th}>Their Email</th>
+                    <th style={styles.th}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedUsers.map((userNode) => (
-                    <tr key={userNode.id} style={{ ...styles.tr, opacity: userNode.isDisabled ? 0.5 : 1, backgroundColor: userNode.isDisabled ? "#f8fafc" : "transparent" }}>
-                      <td style={{ ...styles.td, fontWeight: "600" }}>{userNode.name}</td>
-                      <td style={{ ...styles.td, fontFamily: "monospace" }}>{userNode.email}</td>
-                      <td style={styles.td}>{userNode.designation}</td>
-                      <td style={styles.td}><span style={{ ...styles.badge, backgroundColor: "#f0fdf4", color: "#16a34a" }}>{userNode.operation}</span></td>
+                    <tr key={userNode.id} style={{ ...styles.tr, opacity: userNode.isDisabled ? 0.5 : 1 }}>
+                      <td style={{ ...styles.td, fontWeight: "600", color: "#0f172a" }}>{userNode.name}</td>
+                      <td style={{ ...styles.td, fontFamily: "monospace", color: "#475569" }}>{userNode.email}</td>
                       <td style={styles.td}>
-                        <button 
-                          onClick={() => handleToggleUserStatus(userNode.id)} 
-                          style={{ 
-                            ...styles.toggleStatusButton, 
-                            backgroundColor: userNode.isDisabled ? "#f0fdf4" : "#fff5f5", 
-                            color: userNode.isDisabled ? "#16a34a" : "#e11d48",
-                            border: userNode.isDisabled ? "1px solid #bbf7d0" : "1px solid #fee2e2"
-                          }}
-                        >
-                          {userNode.isDisabled ? "✓ Enable Profile" : "✕ Disable User"}
+                        <button onClick={() => handleToggleUserStatus(userNode.id)} style={{ ...styles.toggleStatusButton, backgroundColor: userNode.isDisabled ? "#e6f4ea" : "#fce8e6", color: userNode.isDisabled ? "#137333" : "#c5221f", border: "1px solid" }}>
+                          {userNode.isDisabled ? "✓ Enable Profile" : "✕ Disable Profile"}
                         </button>
                       </td>
                     </tr>
@@ -482,51 +717,135 @@ export default function App() {
           </div>
         )}
 
-        {currentDashboard === "qa_gate" && (
+        {/* VIEW 6: QA CLEARANCE GATE */}
+        {currentDashboard === "qa_gate" && userRole === "qa" && (
           <div style={styles.workspaceContainer}>
-            <QAGateView masterTickets={masterTickets} onQAAction={handleQAAction} styles={styles} />
+            <div style={styles.panel}>
+              <h3 style={{ margin: "0 0 24px 0", color: "#0a255c", fontSize: "18px", fontWeight: "700" }}>QA Final Clearance Verification Gate</h3>
+              {paginatedQAOrders.length === 0 ? (
+                <div style={{ padding: "60px", textAlign: "center", color: "#94a3b8" }}>No active work batches currently awaiting gate validation keys.</div>
+              ) : (
+                paginatedQAOrders.map((order) => (
+                  <div key={order.orderNo} style={{ border: "1px solid #cbd5e1", borderRadius: "12px", padding: "28px", marginBottom: "32px", backgroundColor: "#ffffff", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.03)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: "2px solid #e2e8f0", paddingBottom: "14px" }}>
+                      {/* CHANGED Manifest Batch ID to Order Number */}
+                      <span style={{ fontSize: "18px", fontWeight: "800", color: "#0a255c" }}>Order Number: {order.orderNo}</span>
+                      <span style={{ fontSize: "13px", color: "#0066cc", fontWeight: "600" }}>Originator Inspector: {order.initiator}</span>
+                    </div>
+
+                    <div style={{ marginBottom: "24px" }}>
+                      <h4 style={{ margin: "0 0 12px 0", fontSize: "11px", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.75px" }}>Component Line items Under Batch Evaluation</h4>
+                      <table style={styles.table}>
+                        <thead>
+                          <tr style={{ ...styles.thRow, backgroundColor: "#f8fafc" }}>
+                            <th style={styles.th}>Image</th>
+                            <th style={styles.th}>Model ID</th>
+                            <th style={styles.th}>Product Title</th>
+                            <th style={styles.th}>Qty</th>
+                            <th style={styles.th}>Classification</th>
+                            <th style={styles.th}>QC Verified Checkpoints</th>
+                            <th style={styles.th}>Remarks</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {order.items.map((component, cIdx) => (
+                            <tr key={cIdx} style={styles.tr}>
+                              <td style={styles.td}>
+                                <img src={component.imageSrc} alt="" style={{ width: "70px", height: "50px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e6f0fa" }} />
+                              </td>
+                              <td style={{ ...styles.td, fontWeight: "700", fontFamily: "monospace", color: "#0a255c" }}>{component.modelNo}</td>
+                              <td style={styles.td}>{component.desc}</td>
+                              <td style={{ ...styles.td, fontWeight: "600" }}>{component.qty} units</td>
+                              <td style={styles.td}>{component.partType}</td>
+                              <td style={styles.td}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                  {(component.selectedCheckpoints || []).map((cp, cpIdx) => (
+                                    <span key={cpIdx} style={{ fontSize: "11px", color: "#137333", fontWeight: "600" }}>✓ {cp}</span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td style={{ ...styles.td, fontStyle: "italic", color: "#64748b" }}>{component.remarks || "No log entries"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "14px", justifyContent: "flex-end", borderTop: "1px solid #e2e8f0", paddingTop: "20px" }}>
+                      {/* CHANGED buttons to REJECT and APPROVE */}
+                      <button onClick={() => handleQAAction(order.orderNo, false)} style={{ ...styles.submitButton, backgroundColor: "#c5221f" }}>REJECT</button>
+                      <button onClick={() => handleQAAction(order.orderNo, true)} style={{ ...styles.submitButton, backgroundColor: "#137333" }}>APPROVE</button>
+                    </div>
+                  </div>
+                ))
+              )}
+
+              <div style={styles.paginationRow}>
+                <span style={{ fontSize: "13px", color: "#64748b" }}>Showing QA Gate Queue Page <b>{qaGatePage}</b> of {totalQAPages || 1}</span>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button disabled={qaGatePage === 1} onClick={() => setQaGatePage(p => p - 1)} style={styles.paginationButton}>Previous</button>
+                  <button disabled={qaGatePage >= totalQAPages} onClick={() => setQaGatePage(p => p + 1)} style={styles.paginationButton}>Next</button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>
 
-      {/* Product Breakdown Modal Overlay */}
+      {/* COMPREHENSIVE MODAL FOR EDITING AND LOADING NATIVE GRAPHICS */}
+      {editingItemNode && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalContentBox, maxWidth: "480px" }}>
+            <h3 style={{ margin: "0 0 18px 0", color: "#0a255c", fontSize: "18px", fontWeight: "700" }}>Update Image Asset Parameters</h3>
+            <form onSubmit={handleCommitInlineEdit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div style={{ textAlign: "center", padding: "14px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "2px dashed #cbd5e1" }}>
+                <img src={editingItemNode.imageSrc} alt="Preview" style={{ maxWidth: "100%", maxHeight: "180px", objectFit: "contain", borderRadius: "6px" }} />
+              </div>
+              <div>
+                <label style={styles.fieldLabel}>Choose New Image from PC</label>
+                <input type="file" accept="image/*" onChange={handleEditModalImageUpload} style={styles.formInlineInput} />
+              </div>
+              <div>
+                <label style={styles.fieldLabel}>Item ID Code</label>
+                <input type="text" value={editingItemNode.orderNo} onChange={(e) => setEditingItemNode({ ...editingItemNode, orderNo: e.target.value.toUpperCase() })} style={styles.formInlineInput} required />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
+                <button type="button" onClick={() => setEditingItemNode(null)} style={{ ...styles.submitButton, backgroundColor: "#64748b" }}>Cancel</button>
+                <button type="submit" style={{ ...styles.submitButton, backgroundColor: "#0a255c" }}>Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Product Breakdown Drawer Modal */}
       {selectedOrderDetails && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalContentBox}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: "2px solid #f1f5f9", paddingBottom: "12px" }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "16px", color: "#0f172a" }}>Work Order Blueprint Breakdown: <span style={{ color: "#1a3a8f" }}>{selectedOrderDetails.orderNo}</span></h3>
-                <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>Initiator Node verification tracking context: {selectedOrderDetails.initiator}</p>
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontAlign: "center", marginBottom: "24px", alignItems: "center" }}>
+              <h3 style={{ color: "#0a255c", fontSize: "20px", fontWeight: "700", margin: 0 }}>Work Order Breakdown Allocation: {selectedOrderDetails.orderNo}</h3>
               <button onClick={() => setSelectedOrderDetails(null)} style={styles.closeModalCrossButton}>✕ Close</button>
             </div>
-            <table style={{ ...styles.table, marginBottom: "20px" }}>
+            <table style={styles.table}>
               <thead>
                 <tr style={styles.thRow}>
-                  <th style={styles.th}>Model Component ID</th>
-                  <th style={styles.th}>Nomenclature Description</th>
+                  <th style={styles.th}>Model ID</th>
+                  <th style={styles.th}>Description</th>
                   <th style={styles.th}>Quantity</th>
-                  <th style={styles.th}>Line Classification</th>
-                  <th style={styles.th}>QC Baseline Status</th>
-                  <th style={styles.th}>Validation Log Notes</th>
+                  <th style={styles.th}>QC Status Output</th>
                 </tr>
               </thead>
               <tbody>
-                {selectedOrderDetails.items && selectedOrderDetails.items.map((item, keyIdx) => (
-                  <tr key={keyIdx} style={styles.tr}>
-                    <td style={{ ...styles.td, fontWeight: "700" }}>{item.modelNo}</td>
+                {selectedOrderDetails.items.map((item, idx) => (
+                  <tr key={idx} style={styles.tr}>
+                    <td style={{...styles.td, fontWeight: "700", fontFamily: "monospace"}}>{item.modelNo}</td>
                     <td style={styles.td}>{item.desc}</td>
-                    <td style={{ ...styles.td, fontWeight: "600" }}>{item.qty} units</td>
-                    <td style={styles.td}>{item.partType}</td>
-                    <td style={{ ...styles.td, fontWeight: "700", color: item.qcChecked ? "#16a34a" : "#e11d48" }}>{item.checklist}</td>
-                    <td style={styles.td}>{item.remarks || "No supplemental remarks logs found."}</td>
+                    <td style={styles.td}>{item.qty} units</td>
+                    <td style={{ ...styles.td, color: item.status === "Verified" ? "#137333" : "#c5221f", fontWeight: "700" }}>{item.status}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={() => setSelectedOrderDetails(null)} style={{ ...styles.submitButton, backgroundColor: "#475569" }}>Dismiss Log Overview</button>
-            </div>
           </div>
         </div>
       )}
@@ -534,84 +853,46 @@ export default function App() {
   );
 }
 
-function QAGateView({ masterTickets, onQAAction, styles }) {
-  const [decisionRemarks, setDecisionRemarks] = useState({});
-  const pendingOrders = masterTickets.filter(t => t.status === "Open");
-  
-  return (
-    <div style={styles.panel}>
-      <h3 style={{ margin: "0 0 20px 0", color: "#0f172a" }}>QA Final Clearance Gate</h3>
-      {pendingOrders.length === 0 ? <div style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>No batches awaiting confirmation.</div> : 
-        pendingOrders.map((order) => (
-          <div key={order.orderNo} style={{ border: "1px solid #e2e8f0", borderRadius: "6px", padding: "20px", marginBottom: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", borderBottom: "1px solid #f1f5f9", paddingBottom: "10px" }}>
-              <span style={{ fontWeight: "700" }}>Batch: {order.orderNo}</span>
-              <span style={{ color: "#2563eb", fontWeight: "600" }}>Status: {order.status}</span>
-            </div>
-            <table style={{ ...styles.table, marginBottom: "16px" }}>
-              <thead>
-                <tr style={styles.thRow}>
-                  <th style={styles.th}>Model</th>
-                  <th style={styles.th}>Desc</th>
-                  <th style={styles.th}>Qty</th>
-                  <th style={styles.th}>QC Check</th>
-                  <th style={styles.th}>Inspector Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-                {order.items.map((item, idx) => (
-                  <tr key={idx} style={styles.tr}>
-                    <td style={styles.td}>{item.modelNo}</td>
-                    <td style={styles.td}>{item.desc}</td>
-                    <td style={styles.td}>{item.qty}</td>
-                    <td style={{ ...styles.td, fontWeight: "700", color: item.qcChecked ? "#16a34a" : "#e11d48" }}>{item.checklist}</td>
-                    <td style={styles.td}>{item.remarks}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input type="text" placeholder="QA Remarks" value={decisionRemarks[order.orderNo] || ""} onChange={(e) => setDecisionRemarks({...decisionRemarks, [order.orderNo]: e.target.value})} style={styles.textInput} />
-              <button onClick={() => onQAAction(order.orderNo, true, decisionRemarks[order.orderNo])} style={{ ...styles.submitButton, backgroundColor: "#16a34a" }}>Approve</button>
-              <button onClick={() => onQAAction(order.orderNo, false, decisionRemarks[order.orderNo])} style={{ ...styles.submitButton, backgroundColor: "#ef4444" }}>Reject</button>
-            </div>
-          </div>
-      ))}
-    </div>
-  );
-}
-
-// Enterprise Dark Blue Slate Palette (Official Corporate Aesthetic Map)
 const styles = {
-  appWrapper: { minHeight: "100vh", width: "100vw", backgroundColor: "#f8fafc", color: "#334155", fontFamily: 'system-ui, -apple-system, sans-serif', display: "flex", flexDirection: "column", boxSizing: "border-box" },
-  loginPage: { minHeight: "100vh", width: "100vw", backgroundColor: "#0f172a", display: "flex", justifyContent: "center", alignItems: "center" },
-  loginCard: { width: "420px", backgroundColor: "#ffffff", padding: "40px", borderRadius: "8px", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.3)" },
-  topBar: { height: "70px", backgroundColor: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 40px", position: "sticky", top: 0, zIndex: 100, boxSizing: "border-box" },
-  tabItem: { height: "100%", padding: "0 16px", border: "none", backgroundColor: "transparent", cursor: "pointer", fontSize: "13px", display: "flex", alignItems: "center", transition: "all 0.15s ease" },
+  appWrapper: { minHeight: "100vh", width: "100vw", backgroundColor: "#f3f6f9", color: "#334155", fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', display: "flex", flexDirection: "column", boxSizing: "border-box" },
+  loginPage: { minHeight: "100vh", width: "100vw", backgroundColor: "#0a255c", display: "flex", justifyContent: "center", alignItems: "center" },
+  loginCard: { width: "420px", backgroundColor: "#ffffff", padding: "44px", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)" },
+  topBar: { height: "74px", backgroundColor: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 40px", position: "sticky", top: 0, zIndex: 100, boxSizing: "border-box", boxShadow: "0 4px 6px -1px rgba(10,37,92,0.02)" },
+  tabItem: { height: "100%", padding: "0 24px", border: "none", backgroundColor: "transparent", cursor: "pointer", fontSize: "14px", display: "flex", alignItems: "center", transition: "all 0.15s ease", letterSpacing: "-0.1px" },
   userProfileBadge: { display: "flex", flexDirection: "column", fontSize: "11px", textAlign: "right" },
-  logoutButton: { padding: "6px 14px", backgroundColor: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "4px", color: "#475569", fontSize: "12px", fontWeight: "600", cursor: "pointer" },
-  contentArea: { padding: "32px 40px", flexGrow: 1, display: "flex", flexDirection: "column", boxSizing: "border-box" },
+  logoutButton: { padding: "8px 18px", backgroundColor: "#ffffff", border: "1px solid #dcdfe4", borderRadius: "8px", color: "#475569", fontSize: "12px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
+  contentArea: { padding: "36px 40px", flexGrow: 1, display: "flex", flexDirection: "column", boxSizing: "border-box" },
   workspaceContainer: { width: "100%", display: "flex", flexDirection: "column" },
-  fieldLabel: { display: "block", fontSize: "11px", textTransform: "uppercase", color: "#475569", fontWeight: "700", marginBottom: "6px" },
-  textInput: { width: "100%", maxWidth: "340px", padding: "10px 14px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "13px", color: "#0f172a" },
-  loginInput: { width: "100%", padding: "12px 14px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" },
-  loginSelect: { width: "100%", padding: "12px 14px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "14px", cursor: "pointer", boxSizing: "border-box" },
-  submitButton: { padding: "10px 20px", backgroundColor: "#1a3a8f", border: "none", color: "#ffffff", fontWeight: "600", borderRadius: "6px", cursor: "pointer", fontSize: "13px" },
-  panel: { backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "24px", boxSizing: "border-box", marginBottom: "20px" },
+  fieldLabel: { display: "block", fontSize: "11px", textTransform: "uppercase", color: "#0a255c", fontWeight: "700", marginBottom: "6px", letterSpacing: "0.5px" },
+  textInput: { width: "100%", maxWidth: "360px", padding: "11px 16px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", color: "#0f172a", outline: "none", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)" },
+  loginInput: { width: "100%", padding: "12px 16px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "14px", boxSizing: "border-box", marginBottom: "12px" },
+  loginSelect: { width: "100%", padding: "12px 16px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "14px", cursor: "pointer", boxSizing: "border-box", marginBottom: "12px" },
+  submitButton: { padding: "11px 24px", backgroundColor: "#0a255c", border: "none", color: "#ffffff", fontWeight: "600", borderRadius: "8px", cursor: "pointer", fontSize: "13px", boxShadow: "0 4px 6px -1px rgba(10,37,92,0.2)", transition: "all 0.2s" },
+  panel: { backgroundColor: "#ffffff", border: "1px solid #e5e9f0", borderRadius: "12px", padding: "28px", boxSizing: "border-box", boxShadow: "0 10px 25px -5px rgba(10,37,92,0.03), 0 8px 10px -6px rgba(10,37,92,0.03)" },
   table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
-  thRow: { backgroundColor: "#f8fafc", borderBottom: "2px solid #e2e8f0" },
-  th: { padding: "12px 16px", fontSize: "11px", color: "#475569", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" },
-  tr: { borderBottom: "1px solid #e2e8f0" },
-  td: { padding: "14px 16px", fontSize: "13px", color: "#334155" },
-  badge: { padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "700", display: "inline-block" },
-  actionInlineBtn: { padding: "6px 12px", backgroundColor: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", color: "#1a3a8f", fontWeight: "700", fontSize: "12px", cursor: "pointer" },
-  toggleStatusButton: { padding: "6px 12px", borderRadius: "4px", fontWeight: "700", fontSize: "12px", cursor: "pointer" },
-  largeImageFrame: { width: "180px", height: "115px", borderRadius: "6px", overflow: "hidden", border: "1px solid #cbd5e1", backgroundColor: "#f1f5f9" },
-  embeddedFormBlock: { padding: "20px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", marginBottom: "20px" },
-  formInlineInput: { width: "100%", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#ffffff", fontSize: "13px", boxSizing: "border-box" },
-  paginationRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #f1f5f9" },
-  paginationButton: { padding: "6px 12px", border: "1px solid #cbd5e1", borderRadius: "4px", backgroundColor: "#ffffff", color: "#334155", fontSize: "12px", fontWeight: "600", cursor: "pointer" },
-  modalOverlay: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", backgroundColor: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
-  modalContentBox: { width: "90%", maxWidth: "1200px", backgroundColor: "#ffffff", padding: "32px", borderRadius: "8px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" },
-  closeModalCrossButton: { background: "none", border: "none", color: "#64748b", fontWeight: "700", fontSize: "13px", cursor: "pointer" }
+  thRow: { backgroundColor: "#f8fafc", borderBottom: "2px solid #e6f0fa" },
+  th: { padding: "16px 20px", fontSize: "11px", color: "#0a255c", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.75px" },
+  tr: { borderBottom: "1px solid #f0f4f8", transition: "background-color 0.15s ease" },
+  td: { padding: "16px 20px", fontSize: "14px", color: "#334155" },
+  badge: { padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "700" },
+  actionInlineBtn: { padding: "7px 16px", backgroundColor: "#e6f0fa", border: "1px solid #b3d1ff", borderRadius: "8px", color: "#0066cc", fontWeight: "700", fontSize: "12px", cursor: "pointer" },
+  toggleStatusButton: { padding: "6px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "12px", cursor: "pointer" },
+  embeddedFormBlock: { padding: "24px", backgroundColor: "#f8fafc", border: "1px solid #e6f0fa", borderRadius: "12px", marginBottom: "24px" },
+  formInlineInput: { width: "100%", padding: "11px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", backgroundColor: "#ffffff", fontSize: "13px", boxSizing: "border-box" },
+  paginationRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" },
+  paginationButton: { padding: "7px 16px", border: "1px solid #cbd5e1", borderRadius: "8px", backgroundColor: "#ffffff", color: "#0a255c", fontSize: "12px", fontWeight: "600", cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
+  modalOverlay: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", backgroundColor: "rgba(10, 37, 92, 0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)" },
+  modalContentBox: { width: "90%", maxWidth: "1200px", backgroundColor: "#ffffff", padding: "36px", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)" },
+  closeModalCrossButton: { background: "none", border: "none", color: "#64748b", fontWeight: "700", cursor: "pointer", fontSize: "18px" },
+  
+  immersiveGalleryRowGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px", width: "100%", padding: "10px 0" },
+  galleryCardContainerFrame: { backgroundColor: "#ffffff", border: "1px solid #e6f0fa", borderRadius: "14px", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 4px 6px -1px rgba(10,37,92,0.02), 0 2px 4px -1px rgba(10,37,92,0.01)" },
+  galleryCardDisplayMediaFrame: { width: "100%", height: "250px", backgroundColor: "#f8fafc", borderBottom: "1px solid #e6f0fa", overflow: "hidden" },
+  galleryContentFrameMetaRow: { padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#ffffff" },
+  galleryItemNomenclatureTitleLabel: { fontSize: "16px", fontWeight: "700", color: "#0a255c", fontFamily: "monospace", letterSpacing: "0.5px" },
+  galleryEditIconTriggerButton: { padding: "7px 16px", border: "1px solid #cbd5e1", borderRadius: "8px", backgroundColor: "#ffffff", color: "#0066cc", fontSize: "12px", fontWeight: "700", cursor: "pointer" },
+
+  // TOAST LAYOUT BLOCKS
+  toastContainer: { position: "fixed", top: "24px", left: "50%", transform: "translateX(-50%)", zIndex: 9999, pointerEvents: "none" },
+  toastCard: { backgroundColor: "#0a255c", color: "#ffffff", padding: "14px 28px", borderRadius: "6px", display: "flex", alignItems: "center", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.15)", borderLeft: "4px solid #0066cc", fontSize: "13px", fontWeight: "500" }
 };
