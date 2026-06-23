@@ -1,0 +1,6 @@
+@nestinternship_HostAddress = http://localhost:5198
+
+GET {{nestinternship_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
