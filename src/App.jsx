@@ -33,7 +33,6 @@ export default function App() {
   const [userPage, setUserPage] = useState(1);
   const [qaGatePage, setQaGatePage] = useState(1);
   const itemsPerPage = 5;
-  // CHANGED: Adjusted gallery per page capacity to 8 items instead of 4
   const galleryPerPage = 8; 
 
   const [showAddUserForm, setShowAddUserForm] = useState(false);
@@ -48,32 +47,21 @@ export default function App() {
   // State register for triggering an edit window on any chosen master blueprint node
   const [editingItemNode, setEditingItemNode] = useState(null);
 
-  // CORE REGISTRY BLUEPRINTS ARRAY
-  const [productsRegistry, setProductsRegistry] = useState([
-    { id: 1, orderNo: "ITM-902", desc: "High-Density PCB Module", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400", partType: "Assembled part" },
-    { id: 2, orderNo: "ITM-441", desc: "Transformer Copper Coil", imageSrc: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400", partType: "Loosed part" },
-    { id: 3, orderNo: "ITM-108", desc: "Silicon Diode Rectifier Array", imageSrc: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400", partType: "Assembled part" },
-    { id: 4, orderNo: "ITM-502", desc: "Monolithic Ceramic Capacitor Cluster", imageSrc: "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400", partType: "Loosed part" },
-    { id: 5, orderNo: "ITM-229", desc: "Gallium Arsenide RF Amplifier Transistor", imageSrc: "https://images.unsplash.com/photo-1517055720413-77a27043181d?w=400", partType: "Assembled part" },
-    { id: 6, orderNo: "ITM-314", desc: "Fiber Optic Transceiver Core Block", imageSrc: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400", partType: "Assembled part" },
-    { id: 7, orderNo: "ITM-883", desc: "Ferrite Core Inductor Ring Bead", imageSrc: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400", partType: "Loosed part" },
-    { id: 8, orderNo: "ITM-711", desc: "Ultra-Low Noise Voltage Regulator", imageSrc: "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=400", partType: "Assembled part" },
-    { id: 9, orderNo: "ITM-605", desc: "Shielded Solid Core Signal Conductor", imageSrc: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400", partType: "Loosed part" },
-    { id: 10, orderNo: "ITM-114", desc: "Embedded ARM Cortex MCU Node", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400", partType: "Assembled part" }
-  ]);
+  // CORE REGISTRY BLUEPRINTS ARRAY - Hydrates live from database container mapping
+  const [productsRegistry, setProductsRegistry] = useState([]);
 
   // MASTER WORK ORDERS MATRIX
   const [masterTickets, setMasterTickets] = useState([
     {
       orderNo: "ORD-7712",
-      initiator: "inspector1@natdc.org",
+      initiator: "qc_inspector@natdc.org",
       status: "Open",
       createTime: "2026-06-11 08:30:00",
       closedTime: "—",
       qaApprovedBy: "—",
       items: [
-        { uid: "i1", modelNo: "ITM-902", desc: "High-Density PCB Module", qty: 4, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=120", status: "Verified", remarks: "Continuity pass.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Solder Joint Structural Integrity"] },
-        { uid: "i2", modelNo: "ITM-441", desc: "Transformer Copper Coil", qty: 2, partType: "Loosed part", imageSrc: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=120", status: "Rejected", remarks: "Surface scratch.", selectedCheckpoints: ["Dimensions & Tolerances Verification"] }
+        { uid: "i1", modelNo: "ITM-902", desc: "High-Density PCB Module", qty: 4, imageSrc: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=120", status: "Verified", remarks: "Continuity pass.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Solder Joint Structural Integrity"] },
+        { uid: "i2", modelNo: "ITM-441", desc: "Transformer Copper Coil", qty: 2, imageSrc: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=120", status: "Rejected", remarks: "Surface scratch.", selectedCheckpoints: ["Dimensions & Tolerances Verification"] }
       ]
     },
     {
@@ -82,66 +70,41 @@ export default function App() {
       status: "Closed",
       createTime: "2026-06-12 10:15:00",
       closedTime: "2026-06-12 11:24:10",
-      qaApprovedBy: "bravo_auditor@natdc.org",
+      qaApprovedBy: "qa_authority@natdc.org",
       items: [
-        { uid: "i3", modelNo: "ITM-108", desc: "Silicon Diode Rectifier Array", qty: 15, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=120", status: "Verified", remarks: "All criteria compliant.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Surface Insulation & Scratch Check", "Solder Joint Structural Integrity", "Thermal Signature Boundary Pass"] }
-      ]
-    },
-    {
-      orderNo: "ORD-1094",
-      initiator: "inspector1@natdc.org",
-      status: "Open",
-      createTime: "2026-06-14 14:22:15",
-      closedTime: "—",
-      qaApprovedBy: "—",
-      items: [
-        { uid: "i4", modelNo: "ITM-502", desc: "Monolithic Ceramic Capacitor Cluster", qty: 25, partType: "Loosed part", imageSrc: "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=120", status: "Verified", remarks: "Capacitance range optimal.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Thermal Signature Boundary Pass"] }
-      ]
-    },
-    {
-      orderNo: "ORD-4552",
-      initiator: "inspector3@natdc.org",
-      status: "Closed",
-      createTime: "2026-06-15 09:05:00",
-      closedTime: "2026-06-15 16:40:22",
-      qaApprovedBy: "alpha_auditor@natdc.org",
-      items: [
-        { uid: "i5", modelNo: "ITM-229", desc: "Gallium Arsenide RF Amplifier Transistor", qty: 8, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1517055720413-77a27043181d?w=120", status: "Verified", remarks: "RF isolation verified.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Surface Insulation & Scratch Check", "Solder Joint Structural Integrity"] }
-      ]
-    },
-    {
-      orderNo: "ORD-9901",
-      initiator: "inspector2@natdc.org",
-      status: "Open",
-      createTime: "2026-06-18 11:45:10",
-      closedTime: "—",
-      qaApprovedBy: "—",
-      items: [
-        { uid: "i6", modelNo: "ITM-711", desc: "Ultra-Low Noise Voltage Regulator", qty: 50, partType: "Assembled part", imageSrc: "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=120", status: "Verified", remarks: "Awaiting final clearance parameters.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Thermal Signature Boundary Pass"] }
-      ]
-    },
-    {
-      orderNo: "ORD-2311",
-      initiator: "inspector4@natdc.org",
-      status: "Closed",
-      createTime: "2026-06-18 15:10:00",
-      closedTime: "2026-06-18 17:33:11",
-      qaApprovedBy: "bravo_auditor@natdc.org",
-      items: [
-        { uid: "i7", modelNo: "ITM-605", desc: "Shielded Solid Core Signal Conductor", qty: 100, partType: "Loosed part", imageSrc: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=120", status: "Verified", remarks: "Dielectric sweep trace constant.", selectedCheckpoints: ["Surface Insulation & Scratch Check"] }
+        { uid: "i3", modelNo: "ITM-108", desc: "Silicon Diode Rectifier Array", qty: 15, imageSrc: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=120", status: "Verified", remarks: "All criteria compliant.", selectedCheckpoints: ["Dimensions & Tolerances Verification", "Surface Insulation & Scratch Check", "Solder Joint Structural Integrity", "Thermal Signature Boundary Pass"] }
       ]
     }
   ]);
 
   // OPERATORS INFORMATION REGISTRY
   const [usersList, setUsersList] = useState([
-    { id: 1, name: "Alpha Inspector", email: "inspector1@natdc.org", isDisabled: false },
-    { id: 2, name: "Bravo Auditor", email: "inspector2@natdc.org", isDisabled: false },
-    { id: 3, name: "Charlie Line Lead", email: "inspector3@natdc.org", isDisabled: false },
-    { id: 4, name: "Delta Evaluator", email: "inspector4@natdc.org", isDisabled: true },
-    { id: 5, name: "Echo Calibration Tech", email: "inspector5@natdc.org", isDisabled: false },
-    { id: 6, name: "System Administrator", email: "admin@natdc.org", isDisabled: false }
+    { id: 1, name: "System Administrator", email: "admin@natdc.org", isDisabled: false },
+    { id: 2, name: "Quality Control Lead", email: "qc_inspector@natdc.org", isDisabled: false },
+    { id: 3, name: "Component Engineer", email: "engineer@natdc.org", isDisabled: false },
+    { id: 4, name: "Quality Assurance Chief", email: "qa_authority@natdc.org", isDisabled: false }
   ]);
+
+  // 📡 BACKEND SYNC: Connect and fetch relational items from products route
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetch('http://localhost:5198/api/Products')
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to synchronize components catalogue.');
+          return response.json();
+        })
+        .then(data => {
+          const mappedProducts = data.map(item => ({
+            id: item.productId,
+            orderNo: item.modelNo,
+            desc: item.description,
+            imageSrc: item.imageUrl || "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400"
+          }));
+          setProductsRegistry(mappedProducts);
+        })
+        .catch(error => console.error('Data pull failed:', error));
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -158,16 +121,31 @@ export default function App() {
     { id: "qa_gate", label: "QA Verification Gate", visible: userRole === "qa" }
   ];
 
+  // 🔑 FULL CREDENTIAL AUTHENTICATION CHECKS AT THE GATEWAYS LAYER
   const handleLogin = (e) => {
     e.preventDefault();
-    if (email && password) {
+    fetch('http://localhost:5198/api/Auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: password }) 
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Access denied. Check email credentials or password matching sequence.');
+      return response.json();
+    })
+    .then(activeUser => {
       setIsLoggedIn(true);
-      if (userRole === "qa") {
+      setUserRole(activeUser.role);
+      setEmail(activeUser.email);
+      
+      if (activeUser.role === "qa") {
         setCurrentDashboard("qa_gate");
       } else {
         setCurrentDashboard("main");
       }
-    }
+      triggerNotification(`Access granted. Welcome back, ${activeUser.name}.`);
+    })
+    .catch(err => alert(err.message));
   };
 
   const handleLogout = () => {
@@ -242,18 +220,41 @@ export default function App() {
     if (!newProductDesc.trim()) return;
     
     const targetIdCode = newProductDesc.trim().toUpperCase();
-    const freshProduct = {
-      id: Date.now(),
-      orderNo: targetIdCode, 
-      desc: newProductDesc.trim(),
-      imageSrc: newProductImg || "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400",
-      partType: "Assembled part"
+    
+    const freshProductPayload = {
+      modelNo: targetIdCode,
+      description: `Master Blueprint specifications ledger row entry for item ${targetIdCode}`,
+      imageUrl: newProductImg || "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400"
     };
-    setProductsRegistry([freshProduct, ...productsRegistry]);
-    triggerNotification(`Master item node asset ${targetIdCode} successfully generated.`);
-    setNewProductDesc("");
-    setNewProductImg("");
-    setShowAddProductForm(false);
+
+    fetch('http://localhost:5198/api/Products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(freshProductPayload)
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to commit item entry to database storage.');
+      return response.json();
+    })
+    .then(() => {
+      return fetch('http://localhost:5198/api/Products');
+    })
+    .then(res => res.json())
+    .then(data => {
+      const mappedProducts = data.map(item => ({
+        id: item.productId,
+        orderNo: item.modelNo,
+        desc: item.description,
+        imageSrc: item.imageUrl
+      }));
+      setProductsRegistry(mappedProducts);
+      
+      triggerNotification(`Master item node asset ${targetIdCode} saved permanently in MySQL!`);
+      setNewProductDesc("");
+      setNewProductImg("");
+      setShowAddProductForm(false);
+    })
+    .catch(err => alert(err.message));
   };
 
   const handleBulkCSVUploadImport = (e) => {
@@ -272,8 +273,7 @@ export default function App() {
             id: Date.now() + i,
             orderNo: structuralRow[0].replace(/"/g, "").trim().toUpperCase(),
             desc: structuralRow[1].replace(/"/g, "").trim(),
-            imageSrc: structuralRow[2] ? structuralRow[2].replace(/"/g, "").trim() : "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400",
-            partType: structuralRow[3] ? structuralRow[3].replace(/"/g, "").trim() : "Assembled part"
+            imageSrc: structuralRow[2] ? structuralRow[2].replace(/"/g, "").trim() : "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400"
           });
         }
       }
@@ -324,7 +324,7 @@ export default function App() {
       ["QA Authorized Clearing Signatory", order.qaApprovedBy],
       [],
       ["DETAILED MASTER PRODUCT FLOWS REGISTRY"],
-      ["Model ID Blueprint", "Item Nomenclature", "Allocated Quantity", "Part Assembly Group Classification", "QC Output Status Status", "Active Component Graphics Resource Link Destination Path", "Accepted Checklist Options Passed", "Denied Checkpoints Skipped", "Inspector Diagnostic Remarks Entries"]
+      ["Model ID Blueprint", "Item Nomenclature", "Allocated Quantity", "QC Output Status Status", "Active Component Graphics Resource Link Destination Path", "Accepted Checklist Options Passed", "Denied Checkpoints Skipped", "Inspector Diagnostic Remarks Entries"]
     ];
 
     order.items.forEach(item => {
@@ -335,7 +335,6 @@ export default function App() {
         item.modelNo,
         item.desc,
         item.qty,
-        item.partType,
         item.status || "Verified",
         item.imageSrc || "—",
         accepted,
@@ -362,10 +361,8 @@ export default function App() {
     return matchesSearch && matchesStatus;
   });
 
-  // CHANGED: Removed the .filter(t => t.status === "Open") constraint so that newly closed/approved items still display in this session queue with their Excel option active.
   const pendingQAOrders = masterTickets;
 
-  // Filtering Logic for Master Data Registry using the unique Item ID
   let filteredRegistry = productsRegistry.filter(item => 
     item.orderNo.toLowerCase().includes(masterDataSearchQuery.toLowerCase().trim())
   );
@@ -406,15 +403,6 @@ export default function App() {
             <p style={{ margin: "0", color: "#0066cc", fontSize: "11px", transform: "translateY(-4px)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "700" }}>Secure Quality Assurance Terminal</p>
           </div>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div>
-              <label style={styles.fieldLabel}>Authentication Clearance Role</label>
-              <select value={userRole} onChange={(e) => setUserRole(e.target.value)} style={styles.loginSelect}>
-                <option value="admin">System Administrator</option>
-                <option value="qc">Quality Control (QC) Inspector</option>
-                <option value="engineer">Engineer Terminal</option>
-                <option value="qa">Quality Assurance (QA) Authority</option>
-              </select>
-            </div>
             <div>
               <label style={styles.fieldLabel}>Corporate Email Address</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="operator@sfotechnologies.net" style={styles.loginInput} required />
@@ -604,13 +592,15 @@ export default function App() {
                     Add as File (.csv)
                     <input type="file" accept=".csv" onChange={handleBulkCSVUploadImport} style={{ display: "none" }} />
                   </label>
-                  <button onClick={() => { setShowAddProductForm(!showAddProductForm); setNewProductImg(""); }} style={styles.submitButton}>
-                    {showAddProductForm ? "Hide Form Layer" : "+ Upload as Item Image"}
-                  </button>
+                  {(userRole === "admin" || userRole === "engineer") && (
+                    <button onClick={() => { setShowAddProductForm(!showAddProductForm); setNewProductImg(""); }} style={styles.submitButton}>
+                      {showAddProductForm ? "Hide Form Layer" : "+ Upload as Item Image"}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {showAddProductForm && (
+              {showAddProductForm && (userRole === "admin" || userRole === "engineer") && (
                 <form onSubmit={handleAddNewProductNode} style={styles.embeddedFormBlock}>
                   <h4 style={{ margin: "0 0 14px 0", fontSize: "14px", color: "#0a255c", fontWeight: "700" }}>Manual Item Overlay Asset Pipeline</h4>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
@@ -638,9 +628,11 @@ export default function App() {
                       </div>
                       <div style={styles.galleryContentFrameMetaRow}>
                         <div style={styles.galleryItemNomenclatureTitleLabel}>{item.orderNo}</div>
-                        <button onClick={() => setEditingItemNode(item)} style={styles.galleryEditIconTriggerButton}>
-                          ✏️ EDIT
-                        </button>
+                        {(userRole === "admin" || userRole === "engineer") && (
+                          <button onClick={() => setEditingItemNode(item)} style={styles.galleryEditIconTriggerButton}>
+                            ✏️ EDIT
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -733,7 +725,6 @@ export default function App() {
                       <span style={{ fontSize: "18px", fontWeight: "800", color: "#0a255c" }}>Order Number: {order.orderNo}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                         <span style={{ fontSize: "13px", color: "#0066cc", fontWeight: "600" }}>Originator Inspector: {order.initiator}</span>
-                        {/* Status Identifier layout pill */}
                         <span style={{ 
                           ...styles.badge, 
                           backgroundColor: order.status === "Closed" ? "#e6f4ea" : "#fff4e5", 
@@ -753,7 +744,6 @@ export default function App() {
                             <th style={styles.th}>Model ID</th>
                             <th style={styles.th}>Product Title</th>
                             <th style={styles.th}>Qty</th>
-                            <th style={styles.th}>Classification</th>
                             <th style={styles.th}>QC Verified Checkpoints</th>
                             <th style={styles.th}>Remarks</th>
                           </tr>
@@ -767,7 +757,6 @@ export default function App() {
                               <td style={{ ...styles.td, fontWeight: "700", fontFamily: "monospace", color: "#0a255c" }}>{component.modelNo}</td>
                               <td style={styles.td}>{component.desc}</td>
                               <td style={{ ...styles.td, fontWeight: "600" }}>{component.qty} units</td>
-                              <td style={styles.td}>{component.partType}</td>
                               <td style={styles.td}>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                   {(component.selectedCheckpoints || []).map((cp, cpIdx) => (
@@ -783,7 +772,6 @@ export default function App() {
                     </div>
 
                     <div style={{ display: "flex", gap: "14px", justifyContent: "flex-end", borderTop: "1px solid #e2e8f0", paddingTop: "20px" }}>
-                      {/* CHANGED: If order is approved ("Closed"), show Download Excel button, else show REJECT and APPROVE actions */}
                       {order.status === "Closed" ? (
                         <button onClick={() => downloadExcelManifest(order)} style={{ ...styles.submitButton, backgroundColor: "#137333", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
                           ⬇ Download Excel
@@ -812,7 +800,7 @@ export default function App() {
       </main>
 
       {/* COMPREHENSIVE MODAL FOR EDITING AND LOADING NATIVE GRAPHICS */}
-      {editingItemNode && (
+      {editingItemNode && (userRole === "admin" || userRole === "engineer") && (
         <div style={styles.modalOverlay}>
           <div style={{ ...styles.modalContentBox, maxWidth: "480px" }}>
             <h3 style={{ margin: "0 0 18px 0", color: "#0a255c", fontSize: "18px", fontWeight: "700" }}>Update Image Asset Parameters</h3>
@@ -903,17 +891,12 @@ const styles = {
   modalOverlay: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", backgroundColor: "rgba(10, 37, 92, 0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)" },
   modalContentBox: { width: "90%", maxWidth: "1200px", backgroundColor: "#ffffff", padding: "36px", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)" },
   closeModalCrossButton: { background: "none", border: "none", color: "#64748b", fontWeight: "700", cursor: "pointer", fontSize: "18px" },
-  
-  // CHANGED: Configured grid display to render 4 tracks side-by-side (fitting 8 objects gracefully with row wrapping)
   immersiveGalleryRowGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "20px", width: "100%", padding: "10px 0" },
   galleryCardContainerFrame: { backgroundColor: "#ffffff", border: "1px solid #e6f0fa", borderRadius: "14px", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 4px 6px -1px rgba(10,37,92,0.02), 0 2px 4px -1px rgba(10,37,92,0.01)" },
-  // CHANGED: Cut display area height parameter directly in half (125px instead of 250px)
   galleryCardDisplayMediaFrame: { width: "100%", height: "125px", backgroundColor: "#f8fafc", borderBottom: "1px solid #e6f0fa", overflow: "hidden" },
   galleryContentFrameMetaRow: { padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#ffffff" },
   galleryItemNomenclatureTitleLabel: { fontSize: "14px", fontWeight: "700", color: "#0a255c", fontFamily: "monospace", letterSpacing: "0.5px" },
   galleryEditIconTriggerButton: { padding: "5px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#ffffff", color: "#0066cc", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
-
-  // TOAST LAYOUT BLOCKS
   toastContainer: { position: "fixed", top: "24px", left: "50%", transform: "translateX(-50%)", zIndex: 9999, pointerEvents: "none" },
-  toastCard: { backgroundColor: "#0a255c", color: "#ffffff", padding: "14px 28px", borderRadius: "6px", display: "flex", alignItems: "center", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.15)", borderLeft: "4px solid #0066cc", fontSize: "13px", fontWeight: "500" }
+  toastCard: { backgroundColor: "#0a255c", color: "#ffffff", padding: "14px 28px", borderRadius: "6px", display: "flex window", alignItems: "center", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.15)", borderLeft: "4px solid #0066cc", fontSize: "13px", fontWeight: "500" }
 };
