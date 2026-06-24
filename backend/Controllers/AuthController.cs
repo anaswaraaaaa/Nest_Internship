@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using MySqlConnector; // FIXED: Changed from MySql.Data.MySqlClient to match Pomelo
-using System;
-using System.Data;
+using Microsoft.EntityFrameworkCore;
+using nestinternship.Data;
+using nestinternship.Models;
+using System.Threading.Tasks;
 
 namespace nestinternship.Controllers
 {
@@ -9,53 +10,42 @@ namespace nestinternship.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IConfiguration _configuration;
+        private readonly AppDbContext _context; // FIXED: Inject your EF Core database context instead of configuration
 
-        public AuthController(IConfiguration configuration)
+        public AuthController(AppDbContext context)
         {
-            _configuration = configuration;
+            _context = context;
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            string connectionString = _configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
-
-            using (var conn = new MySqlConnection(connectionString))
+            try
             {
-                try
+                // EF Core uses LINQ to safely compile your query and map the matching row directly to an object
+                var activeUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == request.Email
+                                           && u.Password == request.Password
+                                           && !u.IsDisabled);
+
+                if (activeUser == null)
                 {
-                    conn.Open();
-
-                    string query = "SELECT user_id, name, email, role FROM users WHERE email = @Email AND password = @Password AND is_disabled = 0";
-
-                    using (var cmd = new MySqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@Email", request.Email);
-                        cmd.Parameters.AddWithValue("@Password", request.Password);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                return Ok(new
-                                {
-                                    UserId = reader.GetInt32("user_id"),
-                                    Name = reader.GetString("name"),
-                                    Email = reader.GetString("email"),
-                                    Role = reader.GetString("role")
-                                });
-                            }
-                        }
-                    }
+                    return Unauthorized("Invalid email/password credentials or account disabled.");
                 }
-                catch (Exception ex)
+
+                // Return properties matching standard naming policy rules cleanly
+                return Ok(new
                 {
-                    return StatusCode(500, $"Database error: {ex.Message}");
-                }
+                    UserId = activeUser.UserId,
+                    Name = activeUser.Name,
+                    Email = activeUser.Email,
+                    Role = activeUser.Role
+                });
             }
-
-            return Unauthorized("Invalid email/password credentials or account disabled.");
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Database error: {ex.Message}");
+            }
         }
     }
 

@@ -4,6 +4,7 @@ using nestinternship.Data;
 using nestinternship.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
@@ -20,6 +21,49 @@ namespace nestinternship.Controllers
             _context = context;
         }
 
+        // FIXED: ADDED GET GATEWAY TO PERSIST REFRESH MUTATIONS
+        // GET: api/WorkOrders
+        [HttpGet]
+        public async Task<IActionResult> GetWorkOrders()
+        {
+            try
+            {
+                // Pull parent records from MySQL storage
+                var workOrders = await _context.WorkOrders.ToListAsync();
+
+                // Pull nested line components to construct full items layout mapping arrays
+                var orderItems = await _context.OrderItems.ToListAsync();
+
+                // Join records into the shape expected by your React frontend
+                var synchronizedPayload = workOrders.Select(order => new
+                {
+                    orderNo = order.OrderNo,
+                    initiatorEmail = order.InitiatorEmail,
+                    status = order.Status,
+                    createTime = order.CreateTime,
+                    closedTime = order.ClosedTime,
+                    qaApprovedBy = order.QaApprovedBy,
+                    orderItems = orderItems.Where(item => item.OrderNo == order.OrderNo).Select(item => new
+                    {
+                        itemUid = item.ItemUid,
+                        modelNo = item.ModelNo,
+                        description = item.Description,
+                        quantity = item.Quantity,
+                        partArrangement = item.PartArrangement,
+                        qcStatus = item.QcStatus,
+                        remarks = item.Remarks,
+                        imageSrc = item.ImageSrc
+                    }).ToList()
+                });
+
+                return Ok(synchronizedPayload);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Database parsing exception: {ex.Message}");
+            }
+        }
+
         // POST: api/WorkOrders/create-full
         [HttpPost("create-full")]
         public async Task<IActionResult> CreateFullWorkOrder([FromBody] FullWorkOrderRequest request)
@@ -29,7 +73,6 @@ namespace nestinternship.Controllers
                 return BadRequest("Invalid work order payload structure.");
             }
 
-            // Fallback Sync: Ensure initiator mapping properties align regardless of casing variations
             if (string.IsNullOrEmpty(request.Order.InitiatorEmail) && !string.IsNullOrEmpty(request.Order.Initiator))
             {
                 request.Order.InitiatorEmail = request.Order.Initiator;
@@ -38,20 +81,16 @@ namespace nestinternship.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Step 1: Append Parent Work Order Header Record
                 _context.WorkOrders.Add(request.Order);
                 await _context.SaveChangesAsync();
 
-                // Step 2: Bind and Append Child Line Items
                 foreach (var item in request.Items)
                 {
-                    item.OrderNo = request.Order.OrderNo; // Force reference linkage identification
+                    item.OrderNo = request.Order.OrderNo;
                     _context.OrderItems.Add(item);
                 }
 
                 await _context.SaveChangesAsync();
-
-                // Step 3: Secure persistent commit if all constraints pass verification
                 await transaction.CommitAsync();
 
                 return Ok(new { message = $"Work Order {request.Order.OrderNo} successfully logged into database records!" });
@@ -59,10 +98,7 @@ namespace nestinternship.Controllers
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-
-                // Outputs raw database trace parameters straight to your Visual Studio output stream window
                 Console.WriteLine($"[TX CORRUPTION LOG]: {ex.Message} -> Inner Exception: {ex.InnerException?.Message}");
-
                 return StatusCode(500, $"Database commit rejected: {ex.Message}. Specific trace: {ex.InnerException?.Message}");
             }
         }
@@ -92,7 +128,6 @@ namespace nestinternship.Controllers
         }
     }
 
-    // FIXED: Added precise serialization rules to catch camelCase JSON payloads from React safely
     public class FullWorkOrderRequest
     {
         [JsonPropertyName("order")]
