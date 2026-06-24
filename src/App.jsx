@@ -1,6 +1,9 @@
+// src/App.jsx
 import React, { useState, useEffect } from "react";
 import CreateTicketDashboard from "./features/tickets/CreateTicketDashboard";
 import MetricsRow from "./features/dashboard/MetricsRow";
+import NeSTLogoEmblem from "./components/NeSTLogoEmblem"; 
+import { styles } from "./styles/appStyles";           
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -13,18 +16,13 @@ export default function App() {
   const [systemTime, setSystemTime] = useState("2026-06-19 02:38:00");
 
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
-
-  // Core Action Toast Notification State
   const [toastMessage, setToastMessage] = useState(null);
 
   const triggerNotification = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
+    setTimeout(() => { setToastMessage(null); }, 4000);
   };
 
-  // Dedicated search entry state register for filtering Master Data components by ID
   const [masterDataSearchQuery, setMasterDataSearchQuery] = useState("");
 
   // Pagination Registers
@@ -40,14 +38,10 @@ export default function App() {
 
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
-
   const [newProductDesc, setNewProductDesc] = useState("");
   const [newProductImg, setNewProductImg] = useState("");
 
-  // State register for triggering an edit window on any chosen master blueprint node
   const [editingItemNode, setEditingItemNode] = useState(null);
-
-  // CORE REGISTRY BLUEPRINTS ARRAY - Hydrates live from database container mapping
   const [productsRegistry, setProductsRegistry] = useState([]);
 
   // MASTER WORK ORDERS MATRIX
@@ -77,7 +71,6 @@ export default function App() {
     }
   ]);
 
-  // OPERATORS INFORMATION REGISTRY
   const [usersList, setUsersList] = useState([
     { id: 1, name: "System Administrator", email: "admin@natdc.org", isDisabled: false },
     { id: 2, name: "Quality Control Lead", email: "qc_inspector@natdc.org", isDisabled: false },
@@ -85,13 +78,46 @@ export default function App() {
     { id: 4, name: "Quality Assurance Chief", email: "qa_authority@natdc.org", isDisabled: false }
   ]);
 
-  // 📡 BACKEND SYNC: Connect and fetch relational items from products route
+  // HOOK 1: Pull all Work Orders and Line Items live from MySQL on Login
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetch('http://localhost:5198/api/WorkOrders') 
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to synchronize work orders ledger.');
+          return response.json();
+        })
+        .then(data => {
+          const mappedTickets = data.map(order => ({
+            orderNo: order.orderNo,
+            initiator: order.initiatorEmail,
+            status: order.status,
+            createTime: order.createTime ? new Date(order.createTime).toISOString().replace('T', ' ').substring(0, 19) : "—",
+            closedTime: order.closedTime || "—",
+            qaApprovedBy: order.qaApprovedBy || "—",
+            items: (order.orderItems || []).map(item => ({
+              uid: item.itemUid.toString(),
+              modelNo: item.modelNo,
+              desc: item.description,
+              qty: item.quantity,
+              partArrangement: item.partArrangement,
+              status: item.qcStatus,
+              remarks: item.remarks,
+              imageSrc: item.imageSrc || "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=400"
+            }))
+          }));
+          setMasterTickets(mappedTickets);
+        })
+        .catch(error => console.error('Tickets sync failed:', error));
+    }
+  }, [isLoggedIn]);
+
+  // FIXED: HOOK 2 ADDED HERE -> Automatically auto-loads all Master Registry Data on page open!
   useEffect(() => {
     if (isLoggedIn) {
       fetch('http://localhost:5198/api/Products')
-        .then(response => {
-          if (!response.ok) throw new Error('Failed to synchronize components catalogue.');
-          return response.json();
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to synchronize catalog master data.');
+          return res.json();
         })
         .then(data => {
           const mappedProducts = data.map(item => ({
@@ -102,7 +128,7 @@ export default function App() {
           }));
           setProductsRegistry(mappedProducts);
         })
-        .catch(error => console.error('Data pull failed:', error));
+        .catch(error => console.error('Catalog synchronization failed:', error));
     }
   }, [isLoggedIn]);
 
@@ -121,7 +147,6 @@ export default function App() {
     { id: "qa_gate", label: "QA Verification Gate", visible: userRole === "qa" }
   ];
 
-  // 🔑 FULL CREDENTIAL AUTHENTICATION CHECKS AT THE GATEWAYS LAYER
   const handleLogin = (e) => {
     e.preventDefault();
     fetch('http://localhost:5198/api/Auth/login', {
@@ -137,12 +162,7 @@ export default function App() {
       setIsLoggedIn(true);
       setUserRole(activeUser.role);
       setEmail(activeUser.email);
-      
-      if (activeUser.role === "qa") {
-        setCurrentDashboard("qa_gate");
-      } else {
-        setCurrentDashboard("main");
-      }
+      setCurrentDashboard(activeUser.role === "qa" ? "qa_gate" : "main");
       triggerNotification(`Access granted. Welcome back, ${activeUser.name}.`);
     })
     .catch(err => alert(err.message));
@@ -156,30 +176,82 @@ export default function App() {
   };
 
   const handleSaveTicket = (orderId, compiledItemsList) => {
-    const newOrderRecord = {
+    const workOrderPayload = {
       orderNo: orderId,
-      initiator: email,
-      status: "Open",
-      createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      closedTime: "—",
-      qaApprovedBy: "—",
-      items: compiledItemsList
+      initiatorEmail: email,
+      status: "Open"
     };
-    setMasterTickets([newOrderRecord, ...masterTickets]);
-    setCurrentDashboard("main");
-    triggerNotification(`New Work Order ${orderId} has been successfully generated.`);
+
+    const orderItemsPayload = compiledItemsList.map(item => ({
+      orderNo: orderId,
+      modelNo: item.modelNo,
+      description: item.desc || "Component Manifest Data Entry",
+      quantity: parseInt(item.qty) || 1,
+      partArrangement: item.partArrangement || "Assembled", 
+      qcStatus: item.status || "Verified",
+      selectedCheckpoints: (item.selectedCheckpoints || []).join(" | "),
+      remarks: item.remarks || "No log entries",
+      imageSrc: item.imageSrc || null
+    }));
+
+    fetch('http://localhost:5198/api/WorkOrders/create-full', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order: workOrderPayload,
+        items: orderItemsPayload
+      })
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to commit transaction logs. Verify schema alignments.');
+      return response.json();
+    })
+    .then(() => {
+      const newOrderRecord = {
+        orderNo: orderId,
+        initiator: email,
+        status: "Open",
+        createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        closedTime: "—",
+        qaApprovedBy: "—",
+        items: compiledItemsList
+      };
+
+      setMasterTickets([newOrderRecord, ...masterTickets]);
+      setCurrentDashboard("main");
+      triggerNotification(`Full Ticket ${orderId} with all item parameters safely saved into MySQL!`);
+    })
+    .catch(err => alert(err.message));
   };
 
   const handleQAAction = (orderNo, approve) => {
-    setMasterTickets(prev => prev.map(order => 
-      order.orderNo === orderNo ? { 
-        ...order, 
-        status: approve ? "Closed" : "Open", 
-        closedTime: approve ? new Date().toISOString().replace('T', ' ').substring(0, 19) : "—",
-        qaApprovedBy: approve ? email : "—"
-      } : order
-    ));
-    triggerNotification(`Batch manifest ${orderNo} has been ${approve ? "Approved & Released" : "Rejected & Requeued"}.`);
+    const qaPayload = {
+      orderNo: orderNo,
+      approve: approve,
+      qaApprovedBy: email
+    };
+
+    fetch(`http://localhost:5198/api/WorkOrders/${orderNo}/clearance`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(qaPayload)
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to update work order status on the database.');
+      return response.json();
+    })
+    .then(() => {
+      setMasterTickets(prev => prev.map(order => 
+        order.orderNo === orderNo ? { 
+          ...order, 
+          status: approve ? "Closed" : "Open", 
+          closedTime: approve ? new Date().toISOString().replace('T', ' ').substring(0, 19) : "—",
+          qaApprovedBy: approve ? email : "—"
+        } : order
+      ));
+      triggerNotification(`Batch manifest ${orderNo} has been saved into MySQL as ${approve ? "Approved" : "Rejected"}!`);
+    })
+    .catch(err => alert(err.message));
   };
 
   const handleAddNewUser = (e) => {
@@ -220,7 +292,6 @@ export default function App() {
     if (!newProductDesc.trim()) return;
     
     const targetIdCode = newProductDesc.trim().toUpperCase();
-    
     const freshProductPayload = {
       modelNo: targetIdCode,
       description: `Master Blueprint specifications ledger row entry for item ${targetIdCode}`,
@@ -236,9 +307,7 @@ export default function App() {
       if (!response.ok) throw new Error('Failed to commit item entry to database storage.');
       return response.json();
     })
-    .then(() => {
-      return fetch('http://localhost:5198/api/Products');
-    })
+    .then(() => fetch('http://localhost:5198/api/Products'))
     .then(res => res.json())
     .then(data => {
       const mappedProducts = data.map(item => ({
@@ -248,8 +317,7 @@ export default function App() {
         imageSrc: item.imageUrl
       }));
       setProductsRegistry(mappedProducts);
-      
-      triggerNotification(`Master item node asset ${targetIdCode} saved permanently in MySQL!`);
+      triggerNotification(`Master item node asset ${targetIdCode} saved permanently inside EF Core Database!`);
       setNewProductDesc("");
       setNewProductImg("");
       setShowAddProductForm(false);
@@ -332,14 +400,7 @@ export default function App() {
       const denied = baselineChecklistOptions.filter(x => !(item.selectedCheckpoints || []).includes(x)).join(" | ") || "None";
       
       rowData.push([
-        item.modelNo,
-        item.desc,
-        item.qty,
-        item.status || "Verified",
-        item.imageSrc || "—",
-        accepted,
-        denied,
-        item.remarks || "—"
+        item.modelNo, item.desc, item.qty, item.status || "Verified", item.imageSrc || "—", accepted, denied, item.remarks || "—"
       ]);
     });
 
@@ -362,34 +423,18 @@ export default function App() {
   });
 
   const pendingQAOrders = masterTickets;
-
   let filteredRegistry = productsRegistry.filter(item => 
     item.orderNo.toLowerCase().includes(masterDataSearchQuery.toLowerCase().trim())
   );
 
   const paginatedTickets = filteredTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalTicketPages = Math.ceil(filteredTickets.length / itemsPerPage);
-
   const paginatedRegistry = filteredRegistry.slice((registryPage - 1) * galleryPerPage, registryPage * galleryPerPage);
   const totalRegistryPages = Math.ceil(filteredRegistry.length / galleryPerPage);
-
   const paginatedUsers = usersList.slice((userPage - 1) * itemsPerPage, userPage * itemsPerPage);
   const totalUserPages = Math.ceil(usersList.length / itemsPerPage);
-
   const paginatedQAOrders = pendingQAOrders.slice((qaGatePage - 1) * itemsPerPage, qaGatePage * itemsPerPage);
   const totalQAPages = Math.ceil(pendingQAOrders.length / itemsPerPage);
-
-  const NeSTLogoEmblem = () => (
-    <svg width="46" height="30" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
-      <g transform="translate(5, 5)">
-        <ellipse cx="55" cy="35" rx="52" ry="32" fill="#e2e8f0" transform="translate(2, 3)" />
-        <ellipse cx="55" cy="35" rx="52" ry="32" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
-        <path d="M55 3 C25 3, 5 15, 5 35 C5 52, 20 63, 40 65 C48 55, 54 42, 57 33 L38 45 L55 3 Z" fill="#0a255c" />
-        <path d="M55 67 C85 67, 105 55, 105 35 C105 18, 90 7, 70 5 C62 15, 56 28, 53 37 L72 25 L55 67 Z" fill="#d91414" />
-        <text x="55" y="42" fontFamily="'Arial Black', Impact, sans-serif" fontSize="16" fontWeight="900" fill="#0f172a" textAnchor="middle" letterSpacing="-0.5">NeST</text>
-      </g>
-    </svg>
-  );
 
   if (!isLoggedIn) {
     return (
@@ -420,7 +465,6 @@ export default function App() {
 
   return (
     <div style={styles.appWrapper}>
-      {/* BUSINESS TOAST OVERLAY */}
       {toastMessage && (
         <div style={styles.toastContainer}>
           <div style={styles.toastCard}>
@@ -466,12 +510,10 @@ export default function App() {
         </div>
       </header>
 
-      <main style={styles.contentArea}>
-        {/* VIEW 1: DATA DASHBOARD */}
+      <header style={styles.contentArea}>
         {currentDashboard === "main" && (
           <div style={styles.workspaceContainer}>
             <MetricsRow masterTickets={masterTickets} statusFilter={statusFilter} setStatusFilter={setStatusFilter} styles={styles} />
-            
             <div style={{ display: "flex", justifyContent: "space-between", margin: "28px 0 16px 0", alignItems: "center" }}>
               <input type="text" placeholder="Search by work order id..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={styles.textInput} />
               {(userRole === "qc" || userRole === "admin") && (
@@ -536,7 +578,6 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 2: MY TICKETS */}
         {currentDashboard === "my_tickets" && userRole === "qc" && (
           <div style={styles.workspaceContainer}>
             <div style={styles.panel}>
@@ -565,42 +606,30 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 3: GENERATE WORK ORDER */}
         {currentDashboard === "create_ticket" && (userRole === "qc" || userRole === "admin") && (
           <div style={styles.workspaceContainer}>
             <CreateTicketDashboard productsRegistry={productsRegistry} onSaveTicket={handleSaveTicket} onCancel={() => setCurrentDashboard("main")} styles={styles} />
           </div>
         )}
 
-        {/* VIEW 4: MASTER DATA IMMERSIVE GALLERY GRID */}
         {currentDashboard === "master_data" && (userRole === "engineer" || userRole === "admin") && (
           <div style={styles.workspaceContainer}>
             <div style={styles.panel}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", borderBottom: "1px solid #e6f0fa", paddingBottom: "18px" }}>
-                <div>
-                  <h3 style={{ margin: 0, color: "#0a255c", fontSize: "18px", fontWeight: "700" }}>System Component Master Registers</h3>
-                </div>
+                <h3 style={{ margin: 0, color: "#0a255c", fontSize: "18px", fontWeight: "700" }}>System Component Master Registers</h3>
                 <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
-                  <input 
-                    type="text" 
-                    placeholder="Search Item ID (e.g. ITM-902)..." 
-                    value={masterDataSearchQuery} 
-                    onChange={(e) => setMasterDataSearchQuery(e.target.value)} 
-                    style={styles.textInput} 
-                  />
+                  <input type="text" placeholder="Search Item ID (e.g. ITM-902)..." value={masterDataSearchQuery} onChange={(e) => setMasterDataSearchQuery(e.target.value)} style={styles.textInput} />
                   <label style={{ ...styles.submitButton, backgroundColor: "#475569", display: "inline-block", cursor: "pointer", lineHeight: "20px" }}>
                     Add as File (.csv)
                     <input type="file" accept=".csv" onChange={handleBulkCSVUploadImport} style={{ display: "none" }} />
                   </label>
-                  {(userRole === "admin" || userRole === "engineer") && (
-                    <button onClick={() => { setShowAddProductForm(!showAddProductForm); setNewProductImg(""); }} style={styles.submitButton}>
-                      {showAddProductForm ? "Hide Form Layer" : "+ Upload as Item Image"}
-                    </button>
-                  )}
+                  <button onClick={() => { setShowAddProductForm(!showAddProductForm); setNewProductImg(""); }} style={styles.submitButton}>
+                    {showAddProductForm ? "Hide Form Layer" : "+ Upload as Item Image"}
+                  </button>
                 </div>
               </div>
 
-              {showAddProductForm && (userRole === "admin" || userRole === "engineer") && (
+              {showAddProductForm && (
                 <form onSubmit={handleAddNewProductNode} style={styles.embeddedFormBlock}>
                   <h4 style={{ margin: "0 0 14px 0", fontSize: "14px", color: "#0a255c", fontWeight: "700" }}>Manual Item Overlay Asset Pipeline</h4>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
@@ -628,11 +657,7 @@ export default function App() {
                       </div>
                       <div style={styles.galleryContentFrameMetaRow}>
                         <div style={styles.galleryItemNomenclatureTitleLabel}>{item.orderNo}</div>
-                        {(userRole === "admin" || userRole === "engineer") && (
-                          <button onClick={() => setEditingItemNode(item)} style={styles.galleryEditIconTriggerButton}>
-                            ✏️ EDIT
-                          </button>
-                        )}
+                        <button onClick={() => setEditingItemNode(item)} style={styles.galleryEditIconTriggerButton}>✏️ EDIT</button>
                       </div>
                     </div>
                   ))
@@ -650,7 +675,6 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 5: USER MANAGEMENT */}
         {currentDashboard === "user_matrix" && userRole === "admin" && (
           <div style={styles.workspaceContainer}>
             <div style={styles.panel}>
@@ -711,7 +735,6 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 6: QA CLEARANCE GATE */}
         {currentDashboard === "qa_gate" && userRole === "qa" && (
           <div style={styles.workspaceContainer}>
             <div style={styles.panel}>
@@ -725,18 +748,13 @@ export default function App() {
                       <span style={{ fontSize: "18px", fontWeight: "800", color: "#0a255c" }}>Order Number: {order.orderNo}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                         <span style={{ fontSize: "13px", color: "#0066cc", fontWeight: "600" }}>Originator Inspector: {order.initiator}</span>
-                        <span style={{ 
-                          ...styles.badge, 
-                          backgroundColor: order.status === "Closed" ? "#e6f4ea" : "#fff4e5", 
-                          color: order.status === "Closed" ? "#137333" : "#b06000" 
-                        }}>
+                        <span style={{ ...styles.badge, backgroundColor: order.status === "Closed" ? "#e6f4ea" : "#fff4e5", color: order.status === "Closed" ? "#137333" : "#b06000" }}>
                           {order.status === "Closed" ? "Approved" : "Pending Clearance"}
                         </span>
                       </div>
                     </div>
 
                     <div style={{ marginBottom: "24px" }}>
-                      <h4 style={{ margin: "0 0 12px 0", fontSize: "11px", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.75px" }}>Component Line items Under Batch Evaluation</h4>
                       <table style={styles.table}>
                         <thead>
                           <tr style={{ ...styles.thRow, backgroundColor: "#f8fafc" }}>
@@ -797,10 +815,10 @@ export default function App() {
             </div>
           </div>
         )}
-      </main>
+      </header>
 
-      {/* COMPREHENSIVE MODAL FOR EDITING AND LOADING NATIVE GRAPHICS */}
-      {editingItemNode && (userRole === "admin" || userRole === "engineer") && (
+      {/* COMPREHENSIVE MODAL FOR EDITING */}
+      {editingItemNode && (
         <div style={styles.modalOverlay}>
           <div style={{ ...styles.modalContentBox, maxWidth: "480px" }}>
             <h3 style={{ margin: "0 0 18px 0", color: "#0a255c", fontSize: "18px", fontWeight: "700" }}>Update Image Asset Parameters</h3>
@@ -859,44 +877,3 @@ export default function App() {
     </div>
   );
 }
-
-const styles = {
-  appWrapper: { minHeight: "100vh", width: "100vw", backgroundColor: "#f3f6f9", color: "#334155", fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', display: "flex", flexDirection: "column", boxSizing: "border-box" },
-  loginPage: { minHeight: "100vh", width: "100vw", backgroundColor: "#0a255c", display: "flex", justifyContent: "center", alignItems: "center" },
-  loginCard: { width: "420px", backgroundColor: "#ffffff", padding: "44px", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)" },
-  topBar: { height: "74px", backgroundColor: "#ffffff", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 40px", position: "sticky", top: 0, zIndex: 100, boxSizing: "border-box", boxShadow: "0 4px 6px -1px rgba(10,37,92,0.02)" },
-  tabItem: { height: "100%", padding: "0 24px", border: "none", backgroundColor: "transparent", cursor: "pointer", fontSize: "14px", display: "flex", alignItems: "center", transition: "all 0.15s ease", letterSpacing: "-0.1px" },
-  userProfileBadge: { display: "flex", flexDirection: "column", fontSize: "11px", textAlign: "right" },
-  logoutButton: { padding: "8px 18px", backgroundColor: "#ffffff", border: "1px solid #dcdfe4", borderRadius: "8px", color: "#475569", fontSize: "12px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
-  contentArea: { padding: "36px 40px", flexGrow: 1, display: "flex", flexDirection: "column", boxSizing: "border-box" },
-  workspaceContainer: { width: "100%", display: "flex", flexDirection: "column" },
-  fieldLabel: { display: "block", fontSize: "11px", textTransform: "uppercase", color: "#0a255c", fontWeight: "700", marginBottom: "6px", letterSpacing: "0.5px" },
-  textInput: { width: "100%", maxWidth: "360px", padding: "11px 16px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", color: "#0f172a", outline: "none", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)" },
-  loginInput: { width: "100%", padding: "12px 16px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "14px", boxSizing: "border-box", marginBottom: "12px" },
-  loginSelect: { width: "100%", padding: "12px 16px", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "14px", cursor: "pointer", boxSizing: "border-box", marginBottom: "12px" },
-  submitButton: { padding: "11px 24px", backgroundColor: "#0a255c", border: "none", color: "#ffffff", fontWeight: "600", borderRadius: "8px", cursor: "pointer", fontSize: "13px", boxShadow: "0 4px 6px -1px rgba(10,37,92,0.2)", transition: "all 0.2s" },
-  panel: { backgroundColor: "#ffffff", border: "1px solid #e5e9f0", borderRadius: "12px", padding: "28px", boxSizing: "border-box", boxShadow: "0 10px 25px -5px rgba(10,37,92,0.03), 0 8px 10px -6px rgba(10,37,92,0.03)" },
-  table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
-  thRow: { backgroundColor: "#f8fafc", borderBottom: "2px solid #e6f0fa" },
-  th: { padding: "16px 20px", fontSize: "11px", color: "#0a255c", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.75px" },
-  tr: { borderBottom: "1px solid #f0f4f8", transition: "background-color 0.15s ease" },
-  td: { padding: "16px 20px", fontSize: "14px", color: "#334155" },
-  badge: { padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "700" },
-  actionInlineBtn: { padding: "7px 16px", backgroundColor: "#e6f0fa", border: "1px solid #b3d1ff", borderRadius: "8px", color: "#0066cc", fontWeight: "700", fontSize: "12px", cursor: "pointer" },
-  toggleStatusButton: { padding: "6px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "12px", cursor: "pointer" },
-  embeddedFormBlock: { padding: "24px", backgroundColor: "#f8fafc", border: "1px solid #e6f0fa", borderRadius: "12px", marginBottom: "24px" },
-  formInlineInput: { width: "100%", padding: "11px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", backgroundColor: "#ffffff", fontSize: "13px", boxSizing: "border-box" },
-  paginationRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" },
-  paginationButton: { padding: "7px 16px", border: "1px solid #cbd5e1", borderRadius: "8px", backgroundColor: "#ffffff", color: "#0a255c", fontSize: "12px", fontWeight: "600", cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
-  modalOverlay: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", backgroundColor: "rgba(10, 37, 92, 0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)" },
-  modalContentBox: { width: "90%", maxWidth: "1200px", backgroundColor: "#ffffff", padding: "36px", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)" },
-  closeModalCrossButton: { background: "none", border: "none", color: "#64748b", fontWeight: "700", cursor: "pointer", fontSize: "18px" },
-  immersiveGalleryRowGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "20px", width: "100%", padding: "10px 0" },
-  galleryCardContainerFrame: { backgroundColor: "#ffffff", border: "1px solid #e6f0fa", borderRadius: "14px", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 4px 6px -1px rgba(10,37,92,0.02), 0 2px 4px -1px rgba(10,37,92,0.01)" },
-  galleryCardDisplayMediaFrame: { width: "100%", height: "125px", backgroundColor: "#f8fafc", borderBottom: "1px solid #e6f0fa", overflow: "hidden" },
-  galleryContentFrameMetaRow: { padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#ffffff" },
-  galleryItemNomenclatureTitleLabel: { fontSize: "14px", fontWeight: "700", color: "#0a255c", fontFamily: "monospace", letterSpacing: "0.5px" },
-  galleryEditIconTriggerButton: { padding: "5px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#ffffff", color: "#0066cc", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
-  toastContainer: { position: "fixed", top: "24px", left: "50%", transform: "translateX(-50%)", zIndex: 9999, pointerEvents: "none" },
-  toastCard: { backgroundColor: "#0a255c", color: "#ffffff", padding: "14px 28px", borderRadius: "6px", display: "flex window", alignItems: "center", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.15)", borderLeft: "4px solid #0066cc", fontSize: "13px", fontWeight: "500" }
-};

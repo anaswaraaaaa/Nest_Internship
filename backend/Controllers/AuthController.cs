@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using MySql.Data.MySqlClient;
+using MySqlConnector; // FIXED: Changed from MySql.Data.MySqlClient to match Pomelo
+using System;
 using System.Data;
 
 namespace nestinternship.Controllers
@@ -18,24 +19,22 @@ namespace nestinternship.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest request)
         {
-            string connectionString = _configuration.GetConnectionString("DefaultConnection");
+            string connectionString = _configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
 
-            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            using (var conn = new MySqlConnection(connectionString))
             {
                 try
                 {
                     conn.Open();
 
-                    // FIXED: Strictly matches BOTH email AND password string columns inside the schema row scan
                     string query = "SELECT user_id, name, email, role FROM users WHERE email = @Email AND password = @Password AND is_disabled = 0";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                    using (var cmd = new MySqlCommand(query, conn))
                     {
-                        // Safely injects parameter tokens to prevent any SQL injection vectors
                         cmd.Parameters.AddWithValue("@Email", request.Email);
                         cmd.Parameters.AddWithValue("@Password", request.Password);
 
-                        using (MySqlDataReader reader = cmd.ExecuteReader())
+                        using (var reader = cmd.ExecuteReader())
                         {
                             if (reader.Read())
                             {
@@ -62,7 +61,7 @@ namespace nestinternship.Controllers
 
     public class LoginRequest
     {
-        public string Email { get; set; }
-        public string Password { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 }

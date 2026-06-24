@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace nestinternship.Models
@@ -12,12 +13,17 @@ namespace nestinternship.Models
 
         [Required]
         [Column("model_no")]
-        public string ModelNo { get; set; }
+        [StringLength(50)]
+        public string ModelNo { get; set; } = string.Empty;
 
+        [Required]
         [Column("description")]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [Column("image_url")]
-        public string ImageUrl { get; set; }
+        public string? ImageUrl { get; set; } // The '?' character marks this field as safely nullable
+
+        [Column("updated_at")]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

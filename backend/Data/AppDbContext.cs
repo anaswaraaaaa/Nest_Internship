@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using nestinternship.Models; // CRITICAL: Gives this file access to your Product entity
+using nestinternship.Models;
 
 namespace nestinternship.Data
 {
@@ -9,7 +9,16 @@ namespace nestinternship.Data
         {
         }
 
-        // Exposes your single products database dataset to the framework context session
+        public DbSet<User> Users { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<WorkOrder> WorkOrders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+            modelBuilder.Entity<Product>().HasIndex(p => p.ModelNo).IsUnique();
+        }
     }
 }

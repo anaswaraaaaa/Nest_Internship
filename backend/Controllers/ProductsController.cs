@@ -2,6 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using nestinternship.Data;
 using nestinternship.Models;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Text.Json.Serialization;
 
 namespace nestinternship.Controllers
@@ -17,15 +20,12 @@ namespace nestinternship.Controllers
             _context = context;
         }
 
-        // 1. GET: Fetch all master registry items using pure EF Core mapping methods
         [HttpGet]
         public async Task<IActionResult> GetProducts()
         {
             try
             {
                 var productsList = await _context.Products.ToListAsync();
-
-                // Formats property keys perfectly to match your camelCase frontend state expectations
                 var formattedResponse = productsList.Select(p => new
                 {
                     ProductId = p.ProductId,
@@ -33,18 +33,16 @@ namespace nestinternship.Controllers
                     Description = p.Description,
                     ImageUrl = p.ImageUrl
                 });
-
                 return Ok(formattedResponse);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Database extraction exception: {ex.Message}");
+                return StatusCode(500, $"Database error: {ex.Message}");
             }
         }
 
-        // 2. POST: Insert new product entries automatically via C# object state changes
         [HttpPost]
-        public async Task<IActionResult> AddProduct([FromBody] ProductSaveRequest request)
+        public async Task<IActionResult> SaveProduct([FromBody] ProductSaveRequest request)
         {
             try
             {
@@ -53,15 +51,14 @@ namespace nestinternship.Controllers
                     return BadRequest("Model Number field identifier is required.");
                 }
 
-                // Instantiate a fresh Product row entity mapping explicitly to your database fields
+                // Map incoming data explicitly to Entity Framework columns
                 var newProduct = new Product
                 {
                     ModelNo = request.ModelNo,
                     Description = request.Description ?? $"Specification profile node for {request.ModelNo}",
-                    ImageUrl = request.ImageUrl
+                    ImageUrl = request.ImageUrl // FIXED: Securely captures mapping values now
                 };
 
-                // Track and execute save sequence safely using mapped parameter columns
                 await _context.Products.AddAsync(newProduct);
                 await _context.SaveChangesAsync();
 
@@ -77,12 +74,12 @@ namespace nestinternship.Controllers
     public class ProductSaveRequest
     {
         [JsonPropertyName("modelNo")]
-        public string ModelNo { get; set; }
+        public string ModelNo { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
-        [JsonPropertyName("imageUrl")]
-        public string ImageUrl { get; set; }
+        [JsonPropertyName("imageUrl")] // FIXED: Added proper attribute string matching configuration tags
+        public string ImageUrl { get; set; } = string.Empty;
     }
 }
