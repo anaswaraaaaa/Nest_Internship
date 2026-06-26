@@ -219,7 +219,7 @@ export default function App() {
 
       setMasterTickets([newOrderRecord, ...masterTickets]);
       setCurrentDashboard("main");
-      triggerNotification(`Full Ticket ${orderId} with all item parameters safely saved into MySQL!`);
+      triggerNotification(`Full Ticket ${orderId} with all item parameters safely saved!`);
     })
     .catch(err => alert(err.message));
   };
@@ -249,7 +249,7 @@ export default function App() {
           qaApprovedBy: approve ? email : "—"
         } : order
       ));
-      triggerNotification(`Batch manifest ${orderNo} has been saved into MySQL as ${approve ? "Approved" : "Rejected"}!`);
+      triggerNotification(`Batch manifest ${orderNo} has been saved as ${approve ? "Approved" : "Rejected"}!`);
     })
     .catch(err => alert(err.message));
   };

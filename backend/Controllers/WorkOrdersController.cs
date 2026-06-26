@@ -21,7 +21,7 @@ namespace nestinternship.Controllers
             _context = context;
         }
 
-        // FIXED: ADDED GET GATEWAY TO PERSIST REFRESH MUTATIONS
+        
         // GET: api/WorkOrders
         [HttpGet]
         public async Task<IActionResult> GetWorkOrders()

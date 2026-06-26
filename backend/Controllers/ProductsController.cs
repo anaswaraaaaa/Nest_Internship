@@ -56,7 +56,7 @@ namespace nestinternship.Controllers
                 {
                     ModelNo = request.ModelNo,
                     Description = request.Description ?? $"Specification profile node for {request.ModelNo}",
-                    ImageUrl = request.ImageUrl // FIXED: Securely captures mapping values now
+                    ImageUrl = request.ImageUrl 
                 };
 
                 await _context.Products.AddAsync(newProduct);
@@ -79,7 +79,7 @@ namespace nestinternship.Controllers
         [JsonPropertyName("description")]
         public string Description { get; set; } = string.Empty;
 
-        [JsonPropertyName("imageUrl")] // FIXED: Added proper attribute string matching configuration tags
+        [JsonPropertyName("imageUrl")] 
         public string ImageUrl { get; set; } = string.Empty;
     }
 }

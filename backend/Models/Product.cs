@@ -21,7 +21,7 @@ namespace nestinternship.Models
         public string Description { get; set; } = string.Empty;
 
         [Column("image_url")]
-        public string? ImageUrl { get; set; } // The '?' character marks this field as safely nullable
+        public string? ImageUrl { get; set; } 
 
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

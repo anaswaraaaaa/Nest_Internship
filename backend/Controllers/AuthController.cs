@@ -10,7 +10,7 @@ namespace nestinternship.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly AppDbContext _context; // FIXED: Inject your EF Core database context instead of configuration
+        private readonly AppDbContext _context; 
 
         public AuthController(AppDbContext context)
         {

@@ -7,7 +7,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-// Add Controllers and force them to output standard camelCase JSON naming conventions
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

@@ -17,7 +17,7 @@ namespace nestinternship.Models
         [StringLength(150)]
         public string InitiatorEmail { get; set; } = string.Empty;
 
-        // SAFE BACKUP PROPERTY FOR FRONTEND DESERIALIZATION
+        
         [NotMapped]
         public string Initiator
         {
